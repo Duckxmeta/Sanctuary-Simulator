@@ -32,6 +32,10 @@ export const SANCTUARY_STRUCTURES = [
 
 
 
+  // 6. FEED CANS (Corn storage outside the barn)
+  { id: 'feed-can-1', name: 'Metal Corn Can A', type: 'cylinder', position: [-9, 0.6, 5], scale: [0.4, 1.2, 0.4], color: '#A9A9A9', collidable: true },
+  { id: 'feed-can-2', name: 'Metal Corn Can B', type: 'cylinder', position: [-7.8, 0.6, 5], scale: [0.4, 1.2, 0.4], color: '#A9A9A9', collidable: true },
+
   // 7. SCATTERED FIELD DETAILS (Rocks spread out in the wider sandbox)
   { id: 'rock-field-1', name: 'Field Rock A', type: 'box', position: [-15, 0.4, 12], scale: [1.5, 0.8, 1.5], color: '#808080', collidable: true },
   { id: 'rock-field-2', name: 'Field Rock B', type: 'box', position: [18, 0.3, -15], scale: [1.2, 0.6, 2], color: '#808080', collidable: true },

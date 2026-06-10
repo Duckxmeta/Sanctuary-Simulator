@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { SANCTUARY_STRUCTURES } from '../../config/mapLayout'
 
-export default function NPCBird({ id, name, color, pos, type, speed }) {
+export default function NPCBird({ id, name, color, pos, type, speed, foodItems, onEatFood }) {
   const groupRef = useRef()
   const targetAngleRef = useRef(Math.random() * Math.PI * 2)
   const changeTimeRef = useRef(0)
@@ -18,14 +18,44 @@ export default function NPCBird({ id, name, color, pos, type, speed }) {
 
     const currentPos = groupRef.current.position
 
-    // 1. Wander State Machine: Pick a random direction every 3 to 6 seconds
-    if (state.clock.elapsedTime > changeTimeRef.current) {
-      targetAngleRef.current = Math.random() * Math.PI * 2
-      changeTimeRef.current = state.clock.elapsedTime + 3 + Math.random() * 3
+    // 1. Attraction & Eat State Machine vs. Wander State Machine
+    let nearestFood = null
+    let minDistance = Infinity
+
+    if (foodItems && foodItems.length > 0) {
+      for (const food of foodItems) {
+        const dx = food.position[0] - currentPos.x
+        const dz = food.position[2] - currentPos.z
+        const dist = Math.sqrt(dx * dx + dz * dz)
+        if (dist < minDistance) {
+          minDistance = dist
+          nearestFood = food
+        }
+      }
+    }
+
+    let isEating = false
+    let targetAngle = targetAngleRef.current
+
+    if (nearestFood) {
+      isEating = true
+      const dx = nearestFood.position[0] - currentPos.x
+      const dz = nearestFood.position[2] - currentPos.z
+      targetAngle = Math.atan2(-dx, -dz)
+      
+      if (minDistance < 0.5) {
+        onEatFood(nearestFood.id)
+      }
+    } else {
+      if (state.clock.elapsedTime > changeTimeRef.current) {
+        targetAngleRef.current = Math.random() * Math.PI * 2
+        changeTimeRef.current = state.clock.elapsedTime + 3 + Math.random() * 3
+      }
+      targetAngle = targetAngleRef.current
     }
 
     // Smoothly rotate towards the target angle
-    const diff = targetAngleRef.current - groupRef.current.rotation.y
+    const diff = targetAngle - groupRef.current.rotation.y
     const normalizedDiff = Math.atan2(Math.sin(diff), Math.cos(diff))
     groupRef.current.rotation.y += normalizedDiff * 2 * delta
 

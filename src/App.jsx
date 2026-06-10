@@ -357,14 +357,19 @@ export default function App() {
 
   const handleSpawnFood = () => {
     const list = []
-    for (let i = 0; i < 5; i++) {
+    const count = 15 + Math.floor(Math.random() * 6) // 15 to 20 items
+    for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2
-      const radius = 1.0 + Math.random() * 1.5
-      const fx = -20 + Math.cos(angle) * radius
-      const fz = 22 + Math.sin(angle) * radius
+      const radius = Math.random() * 5 // within a 5-meter radius
+      const fx = 0 + Math.cos(angle) * radius
+      const fz = 8 + Math.sin(angle) * radius
       list.push({ id: `food-${i}-${Date.now()}`, position: [fx, 0.075, fz] })
     }
     setFoodItems(list)
+  }
+
+  const handleEatFood = (foodId) => {
+    setFoodItems((prev) => prev.filter((item) => item.id !== foodId))
   }
 
   return (
@@ -382,7 +387,12 @@ export default function App() {
         <PlayerBird isGateOpen={isGateOpen} setIsGateOpen={setIsGateOpen} />
         
         {SANCTUARY_NPCS.map((npc) => (
-          <NPCBird key={npc.id} {...npc} />
+          <NPCBird 
+            key={npc.id} 
+            {...npc} 
+            foodItems={foodItems} 
+            onEatFood={handleEatFood} 
+          />
         ))}
 
         {foodItems.map((food) => (
