@@ -225,7 +225,7 @@ function PlayerBird() {
   })
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 18]} castShadow>
+    <mesh ref={meshRef} position={[-15, 0, 18]} castShadow>
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="#ffde59" roughness={0.5} />
     </mesh>
