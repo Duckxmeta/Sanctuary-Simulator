@@ -11,8 +11,8 @@ export default function HumanNPC({ setIsGateOpen, onSpawnFood }) {
   const nodes = {
     gateLine: [-30, 0, 45],
     node1: [-30, 0, 43],
-    cans: [-9, 0, 6],
-    feedZone: [0, 0, 8],
+    cans: [-30, 0, 6],
+    feedZone: [-22, 0, 8],
     outside: [-30, 0, 55]
   }
 

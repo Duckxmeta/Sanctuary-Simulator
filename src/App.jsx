@@ -361,7 +361,7 @@ export default function App() {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2
       const radius = Math.random() * 5 // within a 5-meter radius
-      const fx = 0 + Math.cos(angle) * radius
+      const fx = -22 + Math.cos(angle) * radius
       const fz = 8 + Math.sin(angle) * radius
       list.push({ id: `food-${i}-${Date.now()}`, position: [fx, 0.075, fz] })
     }
