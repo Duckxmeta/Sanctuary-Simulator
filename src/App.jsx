@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Sky } from '@react-three/drei'
+import { Sky, PointerLockControls } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
 import { SANCTUARY_STRUCTURES } from './config/mapLayout'
 
@@ -96,6 +96,7 @@ function PlayerBird() {
     if (!meshRef.current) return
 
     const pos = meshRef.current.position
+    const camYaw = state.camera.rotation.y
 
     // 1. Calculate player's distance to all water pools
     let isInsidePond = false
@@ -152,18 +153,50 @@ function PlayerBird() {
       moveSpeed = stats.speed * 1.5
     }
 
-    // 3. Movement input & steering calculation (A/D adjusts rotation.y)
-    if (left) meshRef.current.rotation.y += 3 * delta
-    if (right) meshRef.current.rotation.y -= 3 * delta
-
-    const isMoving = forward || backward
+    // 3. Movement input & steering calculation (Mouse updates camera, W/S/A/D moves relative to camera)
+    const isMoving = forward || backward || left || right
 
     if (isMoving) {
-      const directionMultiplier = forward ? 1 : -1
-      
-      // Calculate potential next position step
-      const stepX = -Math.sin(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
-      const stepZ = -Math.cos(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
+      // Smoothly rotate the duck's mesh to match the camera's horizontal angle
+      const diff = camYaw - meshRef.current.rotation.y
+      const normalizedDiff = Math.atan2(Math.sin(diff), Math.cos(diff))
+      meshRef.current.rotation.y += normalizedDiff * 0.1
+
+      // Calculate movement vector relative to camera direction
+      let moveX = 0
+      let moveZ = 0
+
+      const fwdX = -Math.sin(camYaw)
+      const fwdZ = -Math.cos(camYaw)
+      const rgtX = Math.cos(camYaw)
+      const rgtZ = -Math.sin(camYaw)
+
+      if (forward) {
+        moveX += fwdX
+        moveZ += fwdZ
+      }
+      if (backward) {
+        moveX -= fwdX
+        moveZ -= fwdZ
+      }
+      if (left) {
+        moveX -= rgtX
+        moveZ -= rgtZ
+      }
+      if (right) {
+        moveX += rgtX
+        moveZ += rgtZ
+      }
+
+      // Normalize diagonal movement
+      const length = Math.sqrt(moveX * moveX + moveZ * moveZ)
+      if (length > 0) {
+        moveX /= length
+        moveZ /= length
+      }
+
+      const stepX = moveX * moveSpeed * delta
+      const stepZ = moveZ * moveSpeed * delta
 
       const nextX = pos.x + stepX
       const nextZ = pos.z + stepZ
@@ -177,6 +210,8 @@ function PlayerBird() {
       }
 
       // Animations based on state
+      const directionMultiplier = forward ? 1 : (backward ? -1 : 0)
+
       if (!isGroundedRef.current) {
         // In-air movement: pitch/lean based on jump/glide direction
         meshRef.current.rotation.z += (0 - meshRef.current.rotation.z) * 0.1
@@ -220,14 +255,16 @@ function PlayerBird() {
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
-    // 5. Dynamic Camera Tracking (3rd-person follow camera pinned behind tail feathers)
-    const theta = meshRef.current.rotation.y
+    // 5. Dynamic Camera Tracking (3rd-person follow camera orbiting the player)
+    const theta = state.camera.rotation.y
+    const phi = state.camera.rotation.x
+    const distance = 6
+
     state.camera.position.set(
-      meshRef.current.position.x + Math.sin(theta) * 6,
-      meshRef.current.position.y + 3, // Height behind player
-      meshRef.current.position.z + Math.cos(theta) * 6  // Distance behind player
+      pos.x + Math.sin(theta) * Math.cos(phi) * distance,
+      pos.y + 0.5 - Math.sin(phi) * distance,
+      pos.z + Math.cos(theta) * Math.cos(phi) * distance
     )
-    state.camera.lookAt(meshRef.current.position)
   })
 
   return (
@@ -269,6 +306,8 @@ export default function App() {
         <PlayerBird />
         
         <SanctuaryMap />
+        
+        <PointerLockControls />
       </Canvas>
     </div>
   )
