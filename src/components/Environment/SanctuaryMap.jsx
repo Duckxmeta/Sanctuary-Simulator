@@ -21,31 +21,13 @@ export default function SanctuaryMap() {
     ]
   }, [])
 
-  // Grass patches/hills for 3D terrain feel
-  const hills = useMemo(() => {
-    return [
-      { position: [-35, -0.5, -30], scale: [16, 3, 16] },
-      { position: [35, -0.3, 30], scale: [18, 2, 18] },
-      { position: [-30, -0.4, 32], scale: [14, 2.5, 14] },
-      { position: [25, -0.6, -35], scale: [15, 3, 15] },
-    ]
-  }, [])
-
   return (
     <group>
-      {/* 1. Main Ground / Grass (92x92 plane to cover the 90x90 boundary area) */}
+      {/* 1. Main Ground / Grass */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[92, 92]} />
-        <meshStandardMaterial color="#689f38" roughness={0.9} />
+        <planeGeometry args={[90, 90]} />
+        <meshStandardMaterial color="#556B2F" roughness={0.9} />
       </mesh>
-
-      {/* 2. Hills/Mounds */}
-      {hills.map((hill, idx) => (
-        <mesh key={`hill-${idx}`} position={hill.position} scale={hill.scale} castShadow receiveShadow>
-          <sphereGeometry args={[1, 16, 16]} />
-          <meshStandardMaterial color="#558b2f" roughness={0.9} />
-        </mesh>
-      ))}
 
       {/* 3. Water Pools (rendered completely flat, matching the horizontal physics tracking) */}
       {waterStructures.map((waterStruct) => {
