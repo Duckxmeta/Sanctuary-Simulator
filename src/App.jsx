@@ -97,10 +97,10 @@ function PlayerBird() {
 
     const pos = meshRef.current.position
 
-    // 1. Calculate player's distance from the center of the pond (0, 0, -13)
+    // 1. Calculate player's distance from the center of the pond (0, 0, -26)
     // The pond diameter is 4.5, so the radius is 2.25
     const pondCenterX = 0
-    const pondCenterZ = -13
+    const pondCenterZ = -26
     const dx = pos.x - pondCenterX
     const dz = pos.z - pondCenterZ
     const distToCenter = Math.sqrt(dx * dx + dz * dz)
@@ -209,8 +209,8 @@ function PlayerBird() {
       }
     }
 
-    // Sanctuary Boundaries Constraint Check (perimeter at 22.0 units to match fences at ±22.5)
-    const boundary = 22.0
+    // Sanctuary Boundaries Constraint Check (perimeter at 44.5 units to match fences at ±45.0)
+    const boundary = 44.5
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
@@ -225,7 +225,7 @@ function PlayerBird() {
   })
 
   return (
-    <mesh ref={meshRef} position={[-15, 0, 18]} castShadow>
+    <mesh ref={meshRef} position={[-30, 0, 40]} castShadow>
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="#ffde59" roughness={0.5} />
     </mesh>

@@ -38,18 +38,18 @@ export default function SanctuaryMap() {
   // Grass patches/hills for 3D terrain feel
   const hills = useMemo(() => {
     return [
-      { position: [-15, -0.5, -12], scale: [8, 2, 8] },
-      { position: [16, -0.3, 14], scale: [10, 1.5, 10] },
-      { position: [-12, -0.4, 15], scale: [6, 1.8, 6] },
-      { position: [8, -0.6, -18], scale: [7, 2, 7] },
+      { position: [-35, -0.5, -30], scale: [16, 3, 16] },
+      { position: [35, -0.3, 30], scale: [18, 2, 18] },
+      { position: [-30, -0.4, 32], scale: [14, 2.5, 14] },
+      { position: [25, -0.6, -35], scale: [15, 3, 15] },
     ]
   }, [])
 
   return (
     <group>
-      {/* 1. Main Ground / Grass (46x46 plane to cover the 45x45 boundary area) */}
+      {/* 1. Main Ground / Grass (92x92 plane to cover the 90x90 boundary area) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[46, 46]} />
+        <planeGeometry args={[92, 92]} />
         <meshStandardMaterial color="#689f38" roughness={0.9} />
       </mesh>
 
