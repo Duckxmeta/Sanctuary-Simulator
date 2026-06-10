@@ -12,7 +12,7 @@ const stats = {
 // Axis-Aligned Bounding Box (AABB) Collision Helper
 const checkCollision = (x, z) => {
   for (const struct of SANCTUARY_STRUCTURES) {
-    if (struct.id === 'main-pond') continue // Exclude pond from solid collisions
+    if (!struct.collidable) continue // Only check collidable structures
 
     const [sx, , sz] = struct.position
     const [sw, , sd] = struct.scale
@@ -97,10 +97,14 @@ function PlayerBird() {
 
     const pos = meshRef.current.position
 
-    // 1. Calculate player's distance from the center of the pond (0, 0, 0)
-    // The pond diameter is 12, so the radius is 6
-    const distToCenter = Math.sqrt(pos.x * pos.x + pos.z * pos.z)
-    const pondRadius = 6.0
+    // 1. Calculate player's distance from the center of the pond (0, 0, -13)
+    // The pond diameter is 4.5, so the radius is 2.25
+    const pondCenterX = 0
+    const pondCenterZ = -13
+    const dx = pos.x - pondCenterX
+    const dz = pos.z - pondCenterZ
+    const distToCenter = Math.sqrt(dx * dx + dz * dz)
+    const pondRadius = 2.25
     const isInsidePond = distToCenter < pondRadius
 
     // Determine target/ground height based on location (water vs land)
@@ -205,8 +209,8 @@ function PlayerBird() {
       }
     }
 
-    // Sanctuary Boundaries Constraint Check (perimeter at 29.5 units to match fences at ±30)
-    const boundary = 29.5
+    // Sanctuary Boundaries Constraint Check (perimeter at 22.0 units to match fences at ±22.5)
+    const boundary = 22.0
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
