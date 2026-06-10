@@ -74,26 +74,24 @@ function PlayerBird() {
     // Smoothly transition the bird's height (lerp)
     pos.y += (targetY - pos.y) * 0.1
 
-    // 3. Movement input calculation
-    const moveX = (keysRef.current.moveRight ? 1 : 0) - (keysRef.current.moveLeft ? 1 : 0)
-    const moveZ = (keysRef.current.moveBackward ? 1 : 0) - (keysRef.current.moveForward ? 1 : 0)
-    const isMoving = moveX !== 0 || moveZ !== 0
+    // 3. Movement input & steering calculation
+    const left = keysRef.current.moveLeft
+    const right = keysRef.current.moveRight
+    const forward = keysRef.current.moveForward
+    const backward = keysRef.current.moveBackward
+
+    // Rotation steering (A/D adjusts rotation.y)
+    if (left) meshRef.current.rotation.y += 3 * delta
+    if (right) meshRef.current.rotation.y -= 3 * delta
+
+    const isMoving = forward || backward
 
     if (isMoving) {
-      // Normalize direction vector
-      const length = Math.sqrt(moveX * moveX + moveZ * moveZ)
-      const dirX = moveX / length
-      const dirZ = moveZ / length
-
-      // Apply movement
-      pos.x += dirX * moveSpeed * delta
-      pos.z += dirZ * moveSpeed * delta
-
-      // Smooth rotation to face movement direction
-      const targetAngle = Math.atan2(dirX, dirZ)
-      let diff = targetAngle - meshRef.current.rotation.y
-      diff = Math.atan2(Math.sin(diff), Math.cos(diff))
-      meshRef.current.rotation.y += diff * 0.15
+      const directionMultiplier = forward ? 1 : -1
+      
+      // Move forward/backward based on current rotation.y
+      pos.x -= Math.sin(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
+      pos.z -= Math.cos(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
 
       // Waddling vs Swimming Animation
       if (!isInsidePond) {
@@ -104,11 +102,11 @@ function PlayerBird() {
       } else {
         // Swimming in pond (gentle wave and forward lean)
         meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 6) * 0.05
-        meshRef.current.rotation.x = 0.05
+        meshRef.current.rotation.x = 0.05 * directionMultiplier
         pos.y = targetY + Math.sin(state.clock.elapsedTime * 4) * 0.03
       }
     } else {
-      // Reset rotations when not moving
+      // Reset rotations when not moving (Z and X rotations only, Y is controlled by steering)
       meshRef.current.rotation.z += (0 - meshRef.current.rotation.z) * 0.1
       meshRef.current.rotation.x += (0 - meshRef.current.rotation.x) * 0.1
 
@@ -123,11 +121,12 @@ function PlayerBird() {
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
-    // 5. Dynamic Camera Tracking (3rd-person follow camera)
+    // 5. Dynamic Camera Tracking (3rd-person follow camera pinned behind tail feathers)
+    const theta = meshRef.current.rotation.y
     state.camera.position.set(
-      meshRef.current.position.x,
+      meshRef.current.position.x + Math.sin(theta) * 6,
       meshRef.current.position.y + 3, // Height behind player
-      meshRef.current.position.z + 6  // Distance behind player
+      meshRef.current.position.z + Math.cos(theta) * 6  // Distance behind player
     )
     state.camera.lookAt(meshRef.current.position)
   })
