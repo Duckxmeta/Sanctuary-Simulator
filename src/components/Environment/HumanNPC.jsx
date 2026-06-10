@@ -127,7 +127,7 @@ export default function HumanNPC({ setIsGateOpen, onSpawnFood }) {
   })
 
   return (
-    <group ref={groupRef} position={[-30, 0, 55]}>
+    <group ref={groupRef} position={[-30, 0, 55]} name="human-npc">
       {/* Tall Blue Caretaker Body */}
       <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.5, 1.8, 0.4]} />

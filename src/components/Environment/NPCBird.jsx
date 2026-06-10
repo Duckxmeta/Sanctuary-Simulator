@@ -19,7 +19,25 @@ export default function NPCBird({ id, name, color, pos, type, speed, scale, food
 
     const currentPos = groupRef.current.position
 
-    // 1. Attraction & Eat State Machine vs. Wander State Machine
+    // 1. Water Detection Check (Distance check against all pools)
+    let isInsidePond = false
+    if (!isTurkey) {
+      for (const struct of SANCTUARY_STRUCTURES) {
+        if (struct.isWater) {
+          const [px, , pz] = struct.position
+          const pradius = struct.scale[0] / 2
+          const dx = currentPos.x - px
+          const dz = currentPos.z - pz
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          if (dist < pradius) {
+            isInsidePond = true
+            break
+          }
+        }
+      }
+    }
+
+    // 2. Attraction & Eat State Machine vs. Wander State Machine
     let nearestFood = null
     let minDistance = Infinity
 
@@ -60,10 +78,11 @@ export default function NPCBird({ id, name, color, pos, type, speed, scale, food
     const normalizedDiff = Math.atan2(Math.sin(diff), Math.cos(diff))
     groupRef.current.rotation.y += normalizedDiff * 2 * delta
 
-    // Move forward at native speed relative to body heading
+    // Move forward relative to body heading with 40% damping (drag) while swimming
     const currentAngle = groupRef.current.rotation.y
-    const stepX = -Math.sin(currentAngle) * speed * delta
-    const stepZ = -Math.cos(currentAngle) * speed * delta
+    let speedMult = isInsidePond ? 0.6 : 1.0 // 40% dampening
+    let stepX = -Math.sin(currentAngle) * speed * speedMult * delta
+    let stepZ = -Math.cos(currentAngle) * speed * speedMult * delta
 
     // If turkey, check if stepping into a pool. If so, bounce back!
     if (isTurkey) {
@@ -96,7 +115,7 @@ export default function NPCBird({ id, name, color, pos, type, speed, scale, food
       currentPos.z += stepZ
     }
 
-    // 2. Sanctuary Boundaries Constraint Check (perimeter at 44.5 units to match fences at ±45.0)
+    // 3. Sanctuary Boundaries Constraint Check (perimeter at 44.5 units to match fences at ±45.0)
     const boundary = 44.5
     if (currentPos.x < -boundary || currentPos.x > boundary || currentPos.z < -boundary || currentPos.z > boundary) {
       currentPos.x = Math.max(-boundary, Math.min(boundary, currentPos.x))
@@ -105,40 +124,22 @@ export default function NPCBird({ id, name, color, pos, type, speed, scale, food
       targetAngleRef.current = (targetAngleRef.current + Math.PI) % (Math.PI * 2)
     }
 
-    // 3. Water Detection Check (Distance check against all pools)
-    let isInsidePond = false
-    if (!isTurkey) {
-      for (const struct of SANCTUARY_STRUCTURES) {
-        if (struct.isWater) {
-          const [px, , pz] = struct.position
-          const pradius = struct.scale[0] / 2
-          const dx = currentPos.x - px
-          const dz = currentPos.z - pz
-          const dist = Math.sqrt(dx * dx + dz * dz)
-          if (dist < pradius) {
-            isInsidePond = true
-            break
-          }
-        }
-      }
-    }
-
     // Determine target height & apply animations (bobbing / waddling)
     let targetY = 0.0
     if (isInsidePond) {
-      // Simulate floating and bobbing inside the pool: drop Y position slightly
-      const bob = Math.sin(state.clock.elapsedTime * 3 + currentPos.x) * 0.03
+      // Apply sinusoidal buoyancy bobbing
+      const bob = Math.sin(state.clock.getElapsedTime() * 3) * 0.05
       targetY = -0.2 + bob
       // Tilt side-to-side slightly while swimming
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 4) * 0.05
+      groupRef.current.rotation.z = Math.sin(state.clock.getElapsedTime() * 4) * 0.05
       groupRef.current.rotation.x = 0
     } else {
       // Waddle on land
       const waddleFreq = 12
-      const waddleAngle = Math.sin(state.clock.elapsedTime * waddleFreq) * 0.08
+      const waddleAngle = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.08
       groupRef.current.rotation.z = waddleAngle
       // Waddle bobbing height
-      targetY = 0.0 + Math.abs(Math.sin(state.clock.elapsedTime * waddleFreq)) * 0.05
+      targetY = 0.0 + Math.abs(Math.sin(state.clock.getElapsedTime() * waddleFreq)) * 0.05
       // Slight pitch tilt forward when walking
       groupRef.current.rotation.x = 0.04
     }
@@ -148,7 +149,7 @@ export default function NPCBird({ id, name, color, pos, type, speed, scale, food
   })
 
   return (
-    <group ref={groupRef} position={[pos[0], pos[1], pos[2]]} scale={baseScale}>
+    <group ref={groupRef} position={[pos[0], pos[1], pos[2]]} scale={baseScale} name="npc-bird">
       {/* MAIN BODY */}
       <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.6, 0.5, 1.0]} />

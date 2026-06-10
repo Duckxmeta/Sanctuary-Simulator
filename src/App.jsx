@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Sky, PointerLockControls } from '@react-three/drei'
+import * as THREE from 'three'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
 import { SANCTUARY_STRUCTURES } from './config/mapLayout'
 import { SANCTUARY_NPCS } from './config/npcLayout'
@@ -42,6 +43,22 @@ const checkCollision = (x, z, isGateOpen) => {
   return false
 }
 
+const isEnvironmentObject = (obj) => {
+  let current = obj
+  while (current) {
+    if (
+      current.name === 'player-duck' ||
+      current.name === 'npc-bird' ||
+      current.name === 'human-npc' ||
+      current.name === 'food-item'
+    ) {
+      return false
+    }
+    current = current.parent
+  }
+  return true
+}
+
 function PlayerBird({ isGateOpen, setIsGateOpen }) {
   const meshRef = useRef()
   const velocityYRef = useRef(0)
@@ -49,6 +66,14 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
   
   const yawRef = useRef(0)
   const pitchRef = useRef(0.2)
+
+  // 2D horizontal velocity for acceleration/inertia
+  const velocityRef = useRef(new THREE.Vector2(0, 0))
+
+  // Raycaster references for ground surface snapping
+  const raycasterRef = useRef(new THREE.Raycaster())
+  const rayOriginRef = useRef(new THREE.Vector3())
+  const rayDirRef = useRef(new THREE.Vector3(0, -1, 0))
 
   const isGateOpenRef = useRef(isGateOpen)
   useEffect(() => {
@@ -139,6 +164,7 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
     const yaw = yawRef.current
     const pitch = pitchRef.current
     const isGateOpenVal = isGateOpenRef.current
+    const velocity = velocityRef.current
 
     // Check distance to main gate [-30, 0, 45]
     const gateX = -30
@@ -158,7 +184,7 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
       }
     }
 
-    // 1. Calculate player's distance to all water pools
+    // A. Check distance to all water pools
     let isInsidePond = false
     for (const struct of SANCTUARY_STRUCTURES) {
       if (struct.isWater) {
@@ -174,8 +200,35 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
       }
     }
 
+    // B. RAYCAST GROUND TRACKING (IK Placement)
+    // Project downward ray from high point at current horizontal coordinates
+    rayOriginRef.current.set(pos.x, 10.0, pos.z)
+    const raycaster = raycasterRef.current
+    raycaster.set(rayOriginRef.current, rayDirRef.current)
+
+    const intersects = raycaster.intersectObjects(state.scene.children, true)
+    let raycastHeight = 0.0 // Baseline flat pasture grass
+    for (const hit of intersects) {
+      if (isEnvironmentObject(hit.object)) {
+        raycastHeight = hit.point.y
+        break
+      }
+    }
+
     // Determine target/ground height based on location (water vs land)
-    const groundLevel = isInsidePond ? -0.2 : 0.0
+    let groundLevel = 0.0
+    if (isInsidePond) {
+      // If we are in the pool area, but stand on a rock/solid height > 0.05, we snap to it
+      if (raycastHeight > 0.05) {
+        groundLevel = raycastHeight
+      } else {
+        // Sinusoidal buoyancy bobbing on water ripples
+        const bob = Math.sin(state.clock.getElapsedTime() * 3) * 0.05
+        groundLevel = -0.2 + bob
+      }
+    } else {
+      groundLevel = raycastHeight
+    }
 
     const spacePressed = keysRef.current.space
     const forward = keysRef.current.moveForward
@@ -183,12 +236,11 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
     const left = keysRef.current.moveLeft
     const right = keysRef.current.moveRight
 
-    // 2. Physics & Gravity / Gliding logic
+    // C. Gravity / Gliding physics
     if (!isGroundedRef.current) {
       const gravity = 32
-      const glideGravity = 6 // Drastically slows descent
+      const glideGravity = 6
       
-      // Choose gravity based on spacebar input (only glide when falling/descending)
       const currentGravity = (spacePressed && velocityYRef.current < 0) ? glideGravity : gravity
 
       velocityYRef.current -= currentGravity * delta
@@ -201,28 +253,23 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
         isGroundedRef.current = true
       }
     } else {
-      // Grounded state height updates (smooth transition when entering/exiting pond)
-      pos.y += (groundLevel - pos.y) * 0.1
+      // Snap feet directly to exact surface height
+      pos.y = groundLevel
     }
 
-    // Determine move speed based on environment state
-    let moveSpeed = isInsidePond ? stats.swimSpeed : stats.speed
+    // D. Rigid Velocity inertia (Acceleration & Deceleration curves)
+    const accel = 12.0
+    const decel = 8.0
 
-    // Forward speed boost while gliding (catching air current)
-    if (!isGroundedRef.current && spacePressed && velocityYRef.current < 0 && forward) {
-      moveSpeed = stats.speed * 1.5
+    let targetSpeed = isInsidePond ? stats.swimSpeed : stats.speed
+    if (!isGroundedRef.current && spacePressed && velocityYRef.current < 0 && (forward || backward || left || right)) {
+      targetSpeed = stats.speed * 1.5
     }
 
-    // 3. Movement input & steering calculation (Mouse updates camera, W/S/A/D moves relative to camera)
-    const isMoving = forward || backward || left || right
-
-    if (isMoving) {
-      // Instantly align duck's body orientation to match the camera's horizontal angle
-      meshRef.current.rotation.y = yaw
-
-      // Calculate movement vector relative to camera direction
-      let moveX = 0
-      let moveZ = 0
+    if (forward || backward || left || right) {
+      // Calculate input direction relative to camera yaw
+      let inputX = 0
+      let inputZ = 0
 
       const fwdX = -Math.sin(yaw)
       const fwdZ = -Math.cos(yaw)
@@ -230,71 +277,97 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
       const rgtZ = -Math.sin(yaw)
 
       if (forward) {
-        moveX += fwdX
-        moveZ += fwdZ
+        inputX += fwdX
+        inputZ += fwdZ
       }
       if (backward) {
-        moveX -= fwdX
-        moveZ -= fwdZ
+        inputX -= fwdX
+        inputZ -= fwdZ
       }
       if (left) {
-        moveX -= rgtX
-        moveZ -= rgtZ
+        inputX -= rgtX
+        inputZ -= rgtZ
       }
       if (right) {
-        moveX += rgtX
-        moveZ += rgtZ
+        inputX += rgtX
+        inputZ += rgtZ
       }
 
-      // Normalize diagonal movement
-      const length = Math.sqrt(moveX * moveX + moveZ * moveZ)
-      if (length > 0) {
-        moveX /= length
-        moveZ /= length
+      // Normalize input heading
+      const inputLen = Math.sqrt(inputX * inputX + inputZ * inputZ)
+      if (inputLen > 0) {
+        inputX /= inputLen
+        inputZ /= inputLen
       }
 
-      const stepX = moveX * moveSpeed * delta
-      const stepZ = moveZ * moveSpeed * delta
+      // Accelerate towards target velocity
+      const targetVelX = inputX * targetSpeed
+      const targetVelZ = inputZ * targetSpeed
+      velocity.x += (targetVelX - velocity.x) * accel * delta
+      velocity.y += (targetVelZ - velocity.y) * accel * delta
+    } else {
+      // Apply friction deceleration
+      velocity.x += (0 - velocity.x) * decel * delta
+      velocity.y += (0 - velocity.y) * decel * delta
+    }
 
-      const nextX = pos.x + stepX
-      const nextZ = pos.z + stepZ
+    // E. Swimming Damping (fluid drag reduces speed by 40%)
+    const speedMultiplier = isInsidePond ? 0.6 : 1.0
+    const stepX = velocity.x * speedMultiplier * delta
+    const stepZ = velocity.y * speedMultiplier * delta
 
-      // Apply sliding collision checks on X and Z axes independently
-      if (!checkCollision(nextX, pos.z, isGateOpenVal)) {
-        pos.x = nextX
-      }
-      if (!checkCollision(pos.x, nextZ, isGateOpenVal)) {
-        pos.z = nextZ
-      }
+    const nextX = pos.x + stepX
+    const nextZ = pos.z + stepZ
 
-      // Animations based on state
+    // Apply sliding collision checks independently on X and Z axes
+    if (!checkCollision(nextX, pos.z, isGateOpenVal)) {
+      pos.x = nextX
+    } else {
+      velocity.x = 0
+    }
+    if (!checkCollision(pos.x, nextZ, isGateOpenVal)) {
+      pos.z = nextZ
+    } else {
+      velocity.y = 0
+    }
+
+    // F. Animations & Turning Alignment
+    const isMoving = velocity.length() > 0.1
+
+    if (isMoving) {
+      // Smoothly rotate body to align with horizontal velocity vector
+      const targetRotationY = Math.atan2(-velocity.x, -velocity.y)
+      const diffRot = targetRotationY - meshRef.current.rotation.y
+      const normDiff = Math.atan2(Math.sin(diffRot), Math.cos(diffRot))
+      meshRef.current.rotation.y += normDiff * 8 * delta
+
+      // Lean body slightly based on forward/backward movement direction
       const directionMultiplier = forward ? 1 : (backward ? -1 : 0)
+      meshRef.current.rotation.x += ((0.05 * directionMultiplier) - meshRef.current.rotation.x) * 0.1
 
       if (!isGroundedRef.current) {
-        // In-air movement: pitch/lean based on jump/glide direction
         meshRef.current.rotation.z += (0 - meshRef.current.rotation.z) * 0.1
         if (spacePressed && velocityYRef.current < 0) {
-          // Gliding: slight forward lean and minor banking
+          // Gliding leaning and banking
           meshRef.current.rotation.x += (0.15 - meshRef.current.rotation.x) * 0.1
           if (left) meshRef.current.rotation.z += (0.15 - meshRef.current.rotation.z) * 0.1
           if (right) meshRef.current.rotation.z += (-0.15 - meshRef.current.rotation.z) * 0.1
         } else {
-          // Standard jump pitch (lean up when rising, lean down when falling)
+          // Standard jump pitch
           const targetPitch = velocityYRef.current > 0 ? -0.1 : 0.1
           meshRef.current.rotation.x += (targetPitch - meshRef.current.rotation.x) * 0.1
         }
       } else {
-        // Grounded movement waddle/swim
-        meshRef.current.rotation.x += ((0.05 * directionMultiplier) - meshRef.current.rotation.x) * 0.1
+        // Grounded animation waddle/swim
         if (!isInsidePond) {
           // Waddling on land
           const waddleFreq = 12
-          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * waddleFreq) * 0.08
-          pos.y = groundLevel + Math.abs(Math.sin(state.clock.elapsedTime * waddleFreq)) * 0.05
+          meshRef.current.rotation.z = Math.sin(state.clock.getElapsedTime() * waddleFreq) * 0.08
+          pos.y = groundLevel + Math.abs(Math.sin(state.clock.getElapsedTime() * waddleFreq)) * 0.05
         } else {
-          // Swimming in pond
-          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 4) * 0.05
-          pos.y = groundLevel + Math.sin(state.clock.elapsedTime * 3 + pos.x) * 0.03
+          // Swimming bobbing
+          meshRef.current.rotation.z = Math.sin(state.clock.getElapsedTime() * 4) * 0.05
+          pos.y = groundLevel
         }
       }
     } else {
@@ -302,47 +375,42 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
       meshRef.current.rotation.z += (0 - meshRef.current.rotation.z) * 0.1
       meshRef.current.rotation.x += (0 - meshRef.current.rotation.x) * 0.1
 
-      if (isGroundedRef.current && isInsidePond) {
-        // Idle floating bob
-        pos.y = groundLevel + Math.sin(state.clock.elapsedTime * 2) * 0.04
+      if (isGroundedRef.current) {
+        pos.y = groundLevel
       }
     }
 
-    // Sanctuary Boundaries Constraint Check (perimeter at 44.5 units to match fences at ±45.0)
+    // Sanctuary Boundaries Constraint Check
     const boundary = 44.5
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
-    // 5. Dynamic Camera Tracking (Rigid 3rd-person orbital camera lock)
-    const distance = 6; // Fixed boom arm length
-    const duckPos = meshRef.current.position;
+    // Strict 3rd-person camera orbital locking
+    const distance = 6
+    const duckPos = meshRef.current.position
+    const targetCamX = duckPos.x + distance * Math.sin(yaw) * Math.cos(pitch)
+    const targetCamY = duckPos.y + 2.5 + distance * Math.sin(pitch)
+    const targetCamZ = duckPos.z + distance * Math.cos(yaw) * Math.cos(pitch)
 
-    // Calculate strict 3rd person position around the target
-    const targetX = duckPos.x + distance * Math.sin(yaw) * Math.cos(pitch);
-    const targetY = duckPos.y + 2.5 + distance * Math.sin(pitch); // 2.5 units up for head-level tracking
-    const targetZ = duckPos.z + distance * Math.cos(yaw) * Math.cos(pitch);
-
-    state.camera.position.set(targetX, targetY, targetZ);
-
-    // Permanently force the camera to stare at the duck's exact center
-    state.camera.lookAt(duckPos.x, duckPos.y + 1, duckPos.z);
+    state.camera.position.set(targetCamX, targetCamY, targetCamZ)
+    state.camera.lookAt(duckPos.x, duckPos.y + 1, duckPos.z)
   })
 
   return (
-    <group ref={meshRef} position={[-30, 0, 40]} scale={[0.6, 0.6, 0.6]}>
-      {/* MAIN BODY - Textured Brown */}
+    <group ref={meshRef} position={[-30, 0, 40]} scale={[0.6, 0.6, 0.6]} name="player-duck">
+      {/* MAIN BODY */}
       <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.6, 0.5, 1.0]} />
         <meshStandardMaterial color="#8B5A2B" roughness={0.8} />
       </mesh>
 
-      {/* MALLARD GREEN HEAD - Facing FORWARD (negative Z) */}
+      {/* HEAD */}
       <mesh position={[0, 0.8, -0.4]} castShadow receiveShadow>
         <boxGeometry args={[0.4, 0.4, 0.4]} />
         <meshStandardMaterial color="#006400" roughness={0.5} />
       </mesh>
 
-      {/* YELLOW BEAK - Pointing STRAIGHT FORWARD */}
+      {/* BEAK */}
       <mesh position={[0, 0.75, -0.7]} castShadow receiveShadow>
         <boxGeometry args={[0.2, 0.1, 0.3]} />
         <meshStandardMaterial color="#FFD700" />
