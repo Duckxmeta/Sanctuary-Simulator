@@ -257,9 +257,14 @@ export default function App() {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas camera={{ position: [0, 8, 16], fov: 60 }} shadows>
-        <Sky sunPosition={[100, 10, 100]} />
+        <Sky distance={450000} sunPosition={[15, 30, 15]} inclination={0} azimuth={0.25} />
         <ambientLight intensity={0.7} />
-        <directionalLight position={[10, 15, 5]} intensity={1.5} castShadow />
+        <directionalLight 
+          castShadow 
+          position={[15, 30, 15]} 
+          intensity={1.5} 
+          shadow-mapSize={[2048, 2048]} 
+        />
         
         <PlayerBird />
         
