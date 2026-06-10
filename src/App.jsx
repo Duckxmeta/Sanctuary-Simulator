@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Sky, useGLTF } from '@react-three/drei'
+import { Sky } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
 import { SANCTUARY_STRUCTURES } from './config/mapLayout'
 
@@ -37,31 +37,10 @@ const checkCollision = (x, z) => {
   return false
 }
 
-function PlayerBird({ colorOverride = '#ffde59' }) {
+function PlayerBird() {
   const meshRef = useRef()
   const velocityYRef = useRef(0)
   const isGroundedRef = useRef(true)
-
-  // Load the 3D duck model from public directory
-  const { scene } = useGLTF('./models/duck.glb')
-
-  // Clone the scene and apply shadows + dynamic color tinting
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone()
-    clone.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-        
-        // Dynamic color overlay for the duck body
-        if (child.material) {
-          child.material = child.material.clone()
-          child.material.color.set(colorOverride)
-        }
-      }
-    })
-    return clone
-  }, [scene, colorOverride])
 
   const keysRef = useRef({
     moveForward: false,
@@ -252,14 +231,24 @@ function PlayerBird({ colorOverride = '#ffde59' }) {
   })
 
   return (
-    <group ref={meshRef} position={[-30, 0, 40]}>
-      <primitive 
-        object={clonedScene} 
-        scale={[1.5, 1.5, 1.5]} 
-        rotation={[0, Math.PI, 0]} // Rotate 180deg to face forward along -Z direction
-        castShadow
-        receiveShadow
-      />
+    <group ref={meshRef} position={[-30, 0, 40]} scale={[0.6, 0.6, 0.6]}>
+      {/* MAIN BODY - Textured Brown */}
+      <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.6, 0.5, 1.0]} />
+        <meshStandardMaterial color="#8B5A2B" roughness={0.8} />
+      </mesh>
+
+      {/* MALLARD GREEN HEAD - Facing FORWARD (negative Z) */}
+      <mesh position={[0, 0.8, -0.4]} castShadow receiveShadow>
+        <boxGeometry args={[0.4, 0.4, 0.4]} />
+        <meshStandardMaterial color="#006400" roughness={0.5} />
+      </mesh>
+
+      {/* YELLOW BEAK - Pointing STRAIGHT FORWARD */}
+      <mesh position={[0, 0.75, -0.7]} castShadow receiveShadow>
+        <boxGeometry args={[0.2, 0.1, 0.3]} />
+        <meshStandardMaterial color="#FFD700" />
+      </mesh>
     </group>
   )
 }
