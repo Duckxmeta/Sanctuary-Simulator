@@ -41,6 +41,9 @@ function PlayerBird() {
   const meshRef = useRef()
   const velocityYRef = useRef(0)
   const isGroundedRef = useRef(true)
+  
+  const yawRef = useRef(0)
+  const pitchRef = useRef(0.2)
 
   const keysRef = useRef({
     moveForward: false,
@@ -92,11 +95,26 @@ function PlayerBird() {
     }
   }, [])
 
+  // Mouse Tracking Event Listener
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (document.pointerLockElement) {
+        yawRef.current += e.movementX * 0.002
+        pitchRef.current = Math.max(-0.5, Math.min(0.5, pitchRef.current - e.movementY * 0.002))
+      }
+    }
+    document.addEventListener('mousemove', handleMouseMove)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [])
+
   useFrame((state, delta) => {
     if (!meshRef.current) return
 
     const pos = meshRef.current.position
-    const camYaw = state.camera.rotation.y
+    const yaw = yawRef.current
+    const pitch = pitchRef.current
 
     // 1. Calculate player's distance to all water pools
     let isInsidePond = false
@@ -157,19 +175,17 @@ function PlayerBird() {
     const isMoving = forward || backward || left || right
 
     if (isMoving) {
-      // Smoothly rotate the duck's mesh to match the camera's horizontal angle
-      const diff = camYaw - meshRef.current.rotation.y
-      const normalizedDiff = Math.atan2(Math.sin(diff), Math.cos(diff))
-      meshRef.current.rotation.y += normalizedDiff * 0.1
+      // Instantly align duck's body orientation to match the camera's horizontal angle
+      meshRef.current.rotation.y = yaw
 
       // Calculate movement vector relative to camera direction
       let moveX = 0
       let moveZ = 0
 
-      const fwdX = -Math.sin(camYaw)
-      const fwdZ = -Math.cos(camYaw)
-      const rgtX = Math.cos(camYaw)
-      const rgtZ = -Math.sin(camYaw)
+      const fwdX = -Math.sin(yaw)
+      const fwdZ = -Math.cos(yaw)
+      const rgtX = Math.cos(yaw)
+      const rgtZ = -Math.sin(yaw)
 
       if (forward) {
         moveX += fwdX
@@ -255,16 +271,19 @@ function PlayerBird() {
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
-    // 5. Dynamic Camera Tracking (3rd-person follow camera orbiting the player)
-    const theta = state.camera.rotation.y
-    const phi = state.camera.rotation.x
-    const distance = 6
+    // 5. Dynamic Camera Tracking (Rigid 3rd-person orbital camera lock)
+    const distance = 6; // Fixed boom arm length
+    const duckPos = meshRef.current.position;
 
-    state.camera.position.set(
-      pos.x + Math.sin(theta) * Math.cos(phi) * distance,
-      pos.y + 0.5 - Math.sin(phi) * distance,
-      pos.z + Math.cos(theta) * Math.cos(phi) * distance
-    )
+    // Calculate strict 3rd person position around the target
+    const targetX = duckPos.x + distance * Math.sin(yaw) * Math.cos(pitch);
+    const targetY = duckPos.y + 2.5 + distance * Math.sin(pitch); // 2.5 units up for head-level tracking
+    const targetZ = duckPos.z + distance * Math.cos(yaw) * Math.cos(pitch);
+
+    state.camera.position.set(targetX, targetY, targetZ);
+
+    // Permanently force the camera to stare at the duck's exact center
+    state.camera.lookAt(duckPos.x, duckPos.y + 1, duckPos.z);
   })
 
   return (
