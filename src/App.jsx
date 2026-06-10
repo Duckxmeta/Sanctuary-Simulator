@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useMemo } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Sky } from '@react-three/drei'
+import { Sky, useGLTF } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
 import { SANCTUARY_STRUCTURES } from './config/mapLayout'
 
@@ -37,10 +37,31 @@ const checkCollision = (x, z) => {
   return false
 }
 
-function PlayerBird() {
+function PlayerBird({ colorOverride = '#ffde59' }) {
   const meshRef = useRef()
   const velocityYRef = useRef(0)
   const isGroundedRef = useRef(true)
+
+  // Load the 3D duck model from public directory
+  const { scene } = useGLTF('./models/duck.glb')
+
+  // Clone the scene and apply shadows + dynamic color tinting
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone()
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+        
+        // Dynamic color overlay for the duck body
+        if (child.material) {
+          child.material = child.material.clone()
+          child.material.color.set(colorOverride)
+        }
+      }
+    })
+    return clone
+  }, [scene, colorOverride])
 
   const keysRef = useRef({
     moveForward: false,
@@ -231,10 +252,15 @@ function PlayerBird() {
   })
 
   return (
-    <mesh ref={meshRef} position={[-30, 0, 40]} castShadow>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#ffde59" roughness={0.5} />
-    </mesh>
+    <group ref={meshRef} position={[-30, 0, 40]}>
+      <primitive 
+        object={clonedScene} 
+        scale={[1.5, 1.5, 1.5]} 
+        rotation={[0, Math.PI, 0]} // Rotate 180deg to face forward along -Z direction
+        castShadow
+        receiveShadow
+      />
+    </group>
   )
 }
 
