@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Sky, Html } from '@react-three/drei'
+import { Sky } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
 
 const stats = {
@@ -10,18 +10,19 @@ const stats = {
 
 function PlayerBird() {
   const meshRef = useRef()
-  const [showQuack, setShowQuack] = useState(false)
+  const velocityYRef = useRef(0)
+  const isGroundedRef = useRef(true)
+
   const keysRef = useRef({
     moveForward: false,
     moveBackward: false,
     moveLeft: false,
     moveRight: false,
+    space: false,
   })
 
-  // Keyboard Event Listeners
+  // Keyboard Event Listeners (tracking active down/up states)
   useEffect(() => {
-    let quackTimeoutId = null
-
     const handleKeyDown = (e) => {
       // Movement keys
       if (e.code === 'KeyW' || e.code === 'ArrowUp') keysRef.current.moveForward = true
@@ -29,13 +30,14 @@ function PlayerBird() {
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') keysRef.current.moveLeft = true
       if (e.code === 'KeyD' || e.code === 'ArrowRight') keysRef.current.moveRight = true
 
-      // Spacebar to quack
+      // Spacebar (Jump & Glide)
       if (e.code === 'Space') {
-        setShowQuack(true)
-        if (quackTimeoutId) clearTimeout(quackTimeoutId)
-        quackTimeoutId = setTimeout(() => {
-          setShowQuack(false)
-        }, 1000)
+        keysRef.current.space = true
+        // Jump trigger: if player is grounded, apply initial velocity burst
+        if (isGroundedRef.current) {
+          velocityYRef.current = 12 // Initial jump force
+          isGroundedRef.current = false
+        }
       }
     }
 
@@ -45,6 +47,11 @@ function PlayerBird() {
       if (e.code === 'KeyS' || e.code === 'ArrowDown') keysRef.current.moveBackward = false
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') keysRef.current.moveLeft = false
       if (e.code === 'KeyD' || e.code === 'ArrowRight') keysRef.current.moveRight = false
+
+      // Spacebar released
+      if (e.code === 'Space') {
+        keysRef.current.space = false
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -53,7 +60,6 @@ function PlayerBird() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
-      if (quackTimeoutId) clearTimeout(quackTimeoutId)
     }
   }, [])
 
@@ -67,20 +73,46 @@ function PlayerBird() {
     const pondRadius = 5.2
     const isInsidePond = distToCenter < pondRadius
 
-    // 2. Determine target height and movement speed
-    const targetY = isInsidePond ? 0.15 : 0.5
-    const moveSpeed = isInsidePond ? stats.swimSpeed : stats.speed
+    // Determine target/ground height based on location (water vs land)
+    const groundLevel = isInsidePond ? 0.15 : 0.5
 
-    // Smoothly transition the bird's height (lerp)
-    pos.y += (targetY - pos.y) * 0.1
-
-    // 3. Movement input & steering calculation
-    const left = keysRef.current.moveLeft
-    const right = keysRef.current.moveRight
+    const spacePressed = keysRef.current.space
     const forward = keysRef.current.moveForward
     const backward = keysRef.current.moveBackward
+    const left = keysRef.current.moveLeft
+    const right = keysRef.current.moveRight
 
-    // Rotation steering (A/D adjusts rotation.y)
+    // 2. Physics & Gravity / Gliding logic
+    if (!isGroundedRef.current) {
+      const gravity = 32
+      const glideGravity = 6 // Drastically slows descent
+      
+      // Choose gravity based on spacebar input (only glide when falling/descending)
+      const currentGravity = (spacePressed && velocityYRef.current < 0) ? glideGravity : gravity
+
+      velocityYRef.current -= currentGravity * delta
+      pos.y += velocityYRef.current * delta
+
+      // 4. Landing Detection
+      if (pos.y <= groundLevel) {
+        pos.y = groundLevel
+        velocityYRef.current = 0
+        isGroundedRef.current = true
+      }
+    } else {
+      // Grounded state height updates (smooth transition when entering/exiting pond)
+      pos.y += (groundLevel - pos.y) * 0.1
+    }
+
+    // Determine move speed based on environment state
+    let moveSpeed = isInsidePond ? stats.swimSpeed : stats.speed
+
+    // Forward speed boost while gliding (catching air current)
+    if (!isGroundedRef.current && spacePressed && velocityYRef.current < 0 && forward) {
+      moveSpeed = stats.speed * 1.5
+    }
+
+    // 3. Movement input & steering calculation (A/D adjusts rotation.y)
     if (left) meshRef.current.rotation.y += 3 * delta
     if (right) meshRef.current.rotation.y -= 3 * delta
 
@@ -93,30 +125,46 @@ function PlayerBird() {
       pos.x -= Math.sin(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
       pos.z -= Math.cos(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
 
-      // Waddling vs Swimming Animation
-      if (!isInsidePond) {
-        // Waddling on land (bobbing and side tilting)
-        const waddleFreq = 16
-        meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * waddleFreq) * 0.15
-        pos.y = targetY + Math.abs(Math.sin(state.clock.elapsedTime * waddleFreq)) * 0.08
+      // Animations based on state
+      if (!isGroundedRef.current) {
+        // In-air movement: pitch/lean based on jump/glide direction
+        meshRef.current.rotation.z += (0 - meshRef.current.rotation.z) * 0.1
+        if (spacePressed && velocityYRef.current < 0) {
+          // Gliding: slight forward lean and minor banking
+          meshRef.current.rotation.x += (0.15 - meshRef.current.rotation.x) * 0.1
+          if (left) meshRef.current.rotation.z += (0.15 - meshRef.current.rotation.z) * 0.1
+          if (right) meshRef.current.rotation.z += (-0.15 - meshRef.current.rotation.z) * 0.1
+        } else {
+          // Standard jump pitch (lean up when rising, lean down when falling)
+          const targetPitch = velocityYRef.current > 0 ? -0.1 : 0.1
+          meshRef.current.rotation.x += (targetPitch - meshRef.current.rotation.x) * 0.1
+        }
       } else {
-        // Swimming in pond (gentle wave and forward lean)
-        meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 6) * 0.05
-        meshRef.current.rotation.x = 0.05 * directionMultiplier
-        pos.y = targetY + Math.sin(state.clock.elapsedTime * 4) * 0.03
+        // Grounded movement waddle/swim
+        meshRef.current.rotation.x += ((0.05 * directionMultiplier) - meshRef.current.rotation.x) * 0.1
+        if (!isInsidePond) {
+          // Waddling on land
+          const waddleFreq = 16
+          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * waddleFreq) * 0.15
+          pos.y = groundLevel + Math.abs(Math.sin(state.clock.elapsedTime * waddleFreq)) * 0.08
+        } else {
+          // Swimming in pond
+          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 6) * 0.05
+          pos.y = groundLevel + Math.sin(state.clock.elapsedTime * 4) * 0.03
+        }
       }
     } else {
-      // Reset rotations when not moving (Z and X rotations only, Y is controlled by steering)
+      // Reset rotations when not moving
       meshRef.current.rotation.z += (0 - meshRef.current.rotation.z) * 0.1
       meshRef.current.rotation.x += (0 - meshRef.current.rotation.x) * 0.1
 
-      if (isInsidePond) {
+      if (isGroundedRef.current && isInsidePond) {
         // Idle floating bob
-        pos.y = targetY + Math.sin(state.clock.elapsedTime * 2) * 0.04
+        pos.y = groundLevel + Math.sin(state.clock.elapsedTime * 2) * 0.04
       }
     }
 
-    // 4. Sanctuary Boundaries Constraint Check (perimeter at 24.5 units)
+    // Sanctuary Boundaries Constraint Check (perimeter at 24.5 units)
     const boundary = 24.5
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
@@ -135,36 +183,6 @@ function PlayerBird() {
     <mesh ref={meshRef} position={[0, 0.5, 0]} castShadow>
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="#ffde59" roughness={0.5} />
-      {showQuack && (
-        <Html position={[0, 1.3, 0]} center>
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            color: '#ff9800',
-            padding: '6px 12px',
-            borderRadius: '16px',
-            fontWeight: '900',
-            fontSize: '14px',
-            fontFamily: '"Outfit", "Inter", sans-serif',
-            border: '2px solid #ff9800',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            userSelect: 'none',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-            animation: 'quackPop 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-            transformOrigin: 'bottom center',
-          }}>
-            QUACK! 🦆
-          </div>
-          <style>{`
-            @keyframes quackPop {
-              0% { transform: scale(0.5) translateY(10px); opacity: 0; }
-              100% { transform: scale(1) translateY(0); opacity: 1; }
-            }
-          `}</style>
-        </Html>
-      )}
     </mesh>
   )
 }
