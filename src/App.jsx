@@ -3,6 +3,8 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { Sky, PointerLockControls } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
 import { SANCTUARY_STRUCTURES } from './config/mapLayout'
+import { SANCTUARY_NPCS } from './config/npcLayout'
+import NPCBird from './components/Environment/NPCBird'
 
 const stats = {
   speed: 4,
@@ -323,6 +325,10 @@ export default function App() {
         />
         
         <PlayerBird />
+        
+        {SANCTUARY_NPCS.map((npc) => (
+          <NPCBird key={npc.id} {...npc} />
+        ))}
         
         <SanctuaryMap />
         
