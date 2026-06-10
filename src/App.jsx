@@ -135,7 +135,7 @@ function PlayerBird() {
     }
 
     // Determine target/ground height based on location (water vs land)
-    const groundLevel = isInsidePond ? 0.15 : 0.5
+    const groundLevel = isInsidePond ? -0.2 : 0.0
 
     const spacePressed = keysRef.current.space
     const forward = keysRef.current.moveForward

@@ -30,11 +30,7 @@ export const SANCTUARY_STRUCTURES = [
   { id: 'pool-3', name: 'Pool Section 3', type: 'cylinder', position: [3, 0.02, -26], scale: [2.25, 0.05, 2.25], color: '#4169E1', collidable: false, isWater: true },
   { id: 'pool-4', name: 'Pool Section 4', type: 'cylinder', position: [9, 0.02, -26], scale: [2.25, 0.05, 2.25], color: '#4169E1', collidable: false, isWater: true },
 
-  // 6. CORNER SHADE & PERIMETER COVER (Bushes scaled out to new corners)
-  { id: 'corner-bush-tl', name: 'Corner Foliage TL', type: 'box', position: [-40, 1.5, -40], scale: [8, 3, 8], color: '#2E8B57', collidable: true },
-  { id: 'corner-bush-tr', name: 'Corner Foliage TR', type: 'box', position: [40, 1.5, -40], scale: [8, 3, 8], color: '#2E8B57', collidable: true },
-  { id: 'corner-bush-bl', name: 'Corner Foliage BL', type: 'box', position: [-40, 1.5, 40], scale: [8, 3, 8], color: '#2E8B57', collidable: true },
-  { id: 'corner-bush-br', name: 'Corner Foliage BR', type: 'box', position: [40, 1.5, 40], scale: [8, 3, 8], color: '#2E8B57', collidable: true },
+
 
   // 7. SCATTERED FIELD DETAILS (Rocks spread out in the wider sandbox)
   { id: 'rock-field-1', name: 'Field Rock A', type: 'box', position: [-15, 0.4, 12], scale: [1.5, 0.8, 1.5], color: '#808080', collidable: true },
