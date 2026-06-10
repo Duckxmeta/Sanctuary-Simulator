@@ -398,23 +398,66 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
 
   return (
     <group ref={meshRef} position={[-30, 0, 40]} scale={[0.6, 0.6, 0.6]} name="player-duck">
-      {/* MAIN BODY */}
-      <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.6, 0.5, 1.0]} />
-        <meshStandardMaterial color="#8B5A2B" roughness={0.8} />
+      {/* 1. PLUMP MAIN BODY */}
+      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+        <sphereGeometry args={[0.35, 32, 16]} /> {/* Scaled to be elongated */}
+        <meshStandardMaterial color="#8B5A2B" roughness={0.7} /> {/* Rich Mallard Brown */}
       </mesh>
 
-      {/* HEAD */}
-      <mesh position={[0, 0.8, -0.4]} castShadow receiveShadow>
-        <boxGeometry args={[0.4, 0.4, 0.4]} />
-        <meshStandardMaterial color="#006400" roughness={0.5} />
+      {/* 2. SLOPING NECK & EMERALD HEAD */}
+      <group position={[0, 0.5, -0.25]}>
+        {/* Neck */}
+        <mesh position={[0, 0.15, -0.05]} rotation={[0.3, 0, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[0.08, 0.1, 0.4, 16]} />
+          <meshStandardMaterial color="#006400" roughness={0.4} />
+        </mesh>
+        {/* Head */}
+        <mesh position={[0, 0.35, -0.1]} castShadow receiveShadow>
+          <sphereGeometry args={[0.14, 16, 16]} />
+          <meshStandardMaterial color="#006400" roughness={0.4} /> {/* Glossy Mallard Green */}
+        </mesh>
+        {/* Realistic Yellow Bill/Beak */}
+        <mesh position={[0, 0.32, -0.25]} rotation={[0.1, 0, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.1, 0.05, 0.18]} />
+          <meshStandardMaterial color="#FFA500" roughness={0.5} /> {/* Orange/Yellow Bill */}
+        </mesh>
+      </group>
+
+      {/* 3. FLAPPABLE WINGS (Tucked to sides) */}
+      {/* Left Wing */}
+      <mesh position={[-0.32, 0.4, 0]} rotation={[0, 0, 0.1]} castShadow receiveShadow>
+        <boxGeometry args={[0.05, 0.25, 0.5]} />
+        <meshStandardMaterial color="#5C4033" roughness={0.8} />
+      </mesh>
+      {/* Right Wing */}
+      <mesh position={[0.32, 0.4, 0]} rotation={[0, 0, -0.1]} castShadow receiveShadow>
+        <boxGeometry args={[0.05, 0.25, 0.5]} />
+        <meshStandardMaterial color="#5C4033" roughness={0.8} />
       </mesh>
 
-      {/* BEAK */}
-      <mesh position={[0, 0.75, -0.7]} castShadow receiveShadow>
-        <boxGeometry args={[0.2, 0.1, 0.3]} />
-        <meshStandardMaterial color="#FFD700" />
-      </mesh>
+      {/* 4. WEBBED FEET (Grounded on grass) */}
+      {/* Left Leg & Foot */}
+      <group position={[-0.15, 0.1, 0]}>
+        <mesh castShadow receiveShadow>
+          <cylinderGeometry args={[0.02, 0.02, 0.2, 8]} />
+          <meshStandardMaterial color="#FF4500" /> {/* Bright Waterfowl Orange */}
+        </mesh>
+        <mesh position={[0, -0.1, -0.05]} castShadow receiveShadow>
+          <boxGeometry args={[0.12, 0.01, 0.15]} /> {/* Flat Webbed Paddle */}
+          <meshStandardMaterial color="#FF4500" />
+        </mesh>
+      </group>
+      {/* Right Leg & Foot */}
+      <group position={[0.15, 0.1, 0]}>
+        <mesh castShadow receiveShadow>
+          <cylinderGeometry args={[0.02, 0.02, 0.2, 8]} />
+          <meshStandardMaterial color="#FF4500" />
+        </mesh>
+        <mesh position={[0, -0.1, -0.05]} castShadow receiveShadow>
+          <boxGeometry args={[0.12, 0.01, 0.15]} />
+          <meshStandardMaterial color="#FF4500" />
+        </mesh>
+      </group>
     </group>
   )
 }
