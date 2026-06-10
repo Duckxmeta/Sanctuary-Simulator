@@ -5,6 +5,7 @@ import SanctuaryMap from './components/Environment/SanctuaryMap'
 import { SANCTUARY_STRUCTURES } from './config/mapLayout'
 import { SANCTUARY_NPCS } from './config/npcLayout'
 import NPCBird from './components/Environment/NPCBird'
+import HumanNPC from './components/Environment/HumanNPC'
 
 const stats = {
   speed: 4,
@@ -352,6 +353,19 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
 
 export default function App() {
   const [isGateOpen, setIsGateOpen] = useState(false)
+  const [foodItems, setFoodItems] = useState([])
+
+  const handleSpawnFood = () => {
+    const list = []
+    for (let i = 0; i < 5; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const radius = 1.0 + Math.random() * 1.5
+      const fx = -20 + Math.cos(angle) * radius
+      const fz = 22 + Math.sin(angle) * radius
+      list.push({ id: `food-${i}-${Date.now()}`, position: [fx, 0.075, fz] })
+    }
+    setFoodItems(list)
+  }
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
@@ -370,6 +384,15 @@ export default function App() {
         {SANCTUARY_NPCS.map((npc) => (
           <NPCBird key={npc.id} {...npc} />
         ))}
+
+        {foodItems.map((food) => (
+          <mesh key={food.id} position={food.position} castShadow receiveShadow>
+            <sphereGeometry args={[0.15, 8, 8]} />
+            <meshStandardMaterial color="#FFD700" roughness={0.5} />
+          </mesh>
+        ))}
+
+        <HumanNPC setIsGateOpen={setIsGateOpen} onSpawnFood={handleSpawnFood} />
         
         <SanctuaryMap isGateOpen={isGateOpen} />
         
