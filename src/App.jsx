@@ -97,15 +97,21 @@ function PlayerBird() {
 
     const pos = meshRef.current.position
 
-    // 1. Calculate player's distance from the center of the pond (0, 0, -26)
-    // The pond diameter is 4.5, so the radius is 2.25
-    const pondCenterX = 0
-    const pondCenterZ = -26
-    const dx = pos.x - pondCenterX
-    const dz = pos.z - pondCenterZ
-    const distToCenter = Math.sqrt(dx * dx + dz * dz)
-    const pondRadius = 2.25
-    const isInsidePond = distToCenter < pondRadius
+    // 1. Calculate player's distance to all water pools
+    let isInsidePond = false
+    for (const struct of SANCTUARY_STRUCTURES) {
+      if (struct.isWater) {
+        const [px, , pz] = struct.position
+        const pradius = struct.scale[0] / 2
+        const dx = pos.x - px
+        const dz = pos.z - pz
+        const dist = Math.sqrt(dx * dx + dz * dz)
+        if (dist < pradius) {
+          isInsidePond = true
+          break
+        }
+      }
+    }
 
     // Determine target/ground height based on location (water vs land)
     const groundLevel = isInsidePond ? 0.15 : 0.5

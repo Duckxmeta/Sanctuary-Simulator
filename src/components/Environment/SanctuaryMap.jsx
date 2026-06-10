@@ -2,38 +2,24 @@ import React, { useMemo } from 'react'
 import { SANCTUARY_STRUCTURES } from '../../config/mapLayout'
 
 export default function SanctuaryMap() {
-  const waterStruct = SANCTUARY_STRUCTURES.find((s) => s.isWater)
+  const waterStructures = SANCTUARY_STRUCTURES.filter((s) => s.isWater)
   
   // Render other structures dynamically
   const regularStructures = SANCTUARY_STRUCTURES.filter((s) => !s.isWater)
 
-  // Generate random placement of rocks around the water feature
-  const rocks = useMemo(() => {
-    if (!waterStruct) return []
-    const arr = []
-    const count = 16
-    const radius = waterStruct.scale[0] / 2 // pond radius
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.2
-      const rockRadius = radius + 0.1 + Math.random() * 0.2
-      const x = Math.cos(angle) * rockRadius
-      const z = Math.sin(angle) * rockRadius
-      const scaleX = 0.4 + Math.random() * 0.4
-      const scaleY = 0.2 + Math.random() * 0.3
-      const scaleZ = 0.4 + Math.random() * 0.4
-      arr.push({
-        id: i,
-        position: [x, scaleY / 2, z],
-        scale: [scaleX, scaleY, scaleZ],
-        rotation: [
-          (Math.random() - 0.5) * 0.3,
-          Math.random() * Math.PI,
-          (Math.random() - 0.5) * 0.3,
-        ],
-      })
-    }
-    return arr
-  }, [waterStruct])
+  // Rocks border pattern (relative offsets) to place around each pool
+  const rockOffsets = useMemo(() => {
+    return [
+      { pos: [1.2, 0.05, 0.2], scale: [0.35, 0.15, 0.3], rot: [0, 0.5, 0] },
+      { pos: [-1.2, 0.05, -0.2], scale: [0.3, 0.12, 0.35], rot: [0.1, 1.2, 0] },
+      { pos: [0.2, 0.05, 1.2], scale: [0.4, 0.18, 0.3], rot: [0, 0, 0.1] },
+      { pos: [-0.2, 0.05, -1.2], scale: [0.28, 0.1, 0.28], rot: [0.2, -0.5, 0] },
+      { pos: [0.9, 0.05, 0.9], scale: [0.32, 0.14, 0.32], rot: [0.1, 0.7, 0.1] },
+      { pos: [-0.9, 0.05, -0.9], scale: [0.34, 0.11, 0.34], rot: [0, -0.8, -0.1] },
+      { pos: [-0.9, 0.05, 0.9], scale: [0.3, 0.13, 0.3], rot: [0.1, -0.7, 0] },
+      { pos: [0.9, 0.05, -0.9], scale: [0.35, 0.16, 0.35], rot: [0, 0.8, 0.1] },
+    ]
+  }, [])
 
   // Grass patches/hills for 3D terrain feel
   const hills = useMemo(() => {
@@ -61,37 +47,42 @@ export default function SanctuaryMap() {
         </mesh>
       ))}
 
-      {/* 3. Water Pond (with rocks and shoreline details) */}
-      {waterStruct && (
-        <group position={waterStruct.position}>
-          {/* Shoreline Sand Ring */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]} receiveShadow>
-            <cylinderGeometry args={[waterStruct.scale[0] / 2 + 0.3, waterStruct.scale[2] / 2 + 0.4, 0.02, 32]} />
-            <meshStandardMaterial color="#cfd8dc" roughness={0.9} />
-          </mesh>
-          
-          {/* Water Surface */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
-            <cylinderGeometry args={[waterStruct.scale[0] / 2, waterStruct.scale[2] / 2, 0.02, 32]} />
-            <meshStandardMaterial color={waterStruct.color} roughness={0.1} metalness={0.1} transparent opacity={0.85} />
-          </mesh>
+      {/* 3. Water Pools (rendered completely flat, matching the horizontal physics tracking) */}
+      {waterStructures.map((waterStruct) => {
+        const radius = waterStruct.scale[0] / 2
+        const height = waterStruct.scale[1]
 
-          {/* Rocks border */}
-          {rocks.map((rock) => (
-            <mesh
-              key={`rock-${rock.id}`}
-              position={rock.position}
-              scale={rock.scale}
-              rotation={rock.rotation}
-              castShadow
-              receiveShadow
-            >
-              <boxGeometry args={[1, 1, 1]} />
-              <meshStandardMaterial color="#90a4ae" roughness={0.8} />
+        return (
+          <group key={waterStruct.id} position={waterStruct.position}>
+            {/* Shoreline Sand Ring (no rotation on mesh so it sits flat horizontally) */}
+            <mesh position={[0, 0.001, 0]} receiveShadow>
+              <cylinderGeometry args={[radius + 0.2, radius + 0.3, 0.01, 32]} />
+              <meshStandardMaterial color="#cfd8dc" roughness={0.9} />
             </mesh>
-          ))}
-        </group>
-      )}
+            
+            {/* Water Surface (no rotation on mesh so it sits flat horizontally) */}
+            <mesh position={[0, 0.01, 0]} receiveShadow>
+              <cylinderGeometry args={[radius, radius, height, 32]} />
+              <meshStandardMaterial color={waterStruct.color} roughness={0.1} metalness={0.1} transparent opacity={0.6} />
+            </mesh>
+
+            {/* Rocks border around each pool */}
+            {rockOffsets.map((rock, idx) => (
+              <mesh
+                key={`rock-${waterStruct.id}-${idx}`}
+                position={rock.pos}
+                scale={rock.scale}
+                rotation={rock.rot}
+                castShadow
+                receiveShadow
+              >
+                <boxGeometry args={[1, 1, 1]} />
+                <meshStandardMaterial color="#90a4ae" roughness={0.8} />
+              </mesh>
+            ))}
+          </group>
+        )
+      })}
 
       {/* 4. Render All Other Structures Dynamically */}
       {regularStructures.map((struct) => {

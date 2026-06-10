@@ -24,8 +24,11 @@ export const SANCTUARY_STRUCTURES = [
   { id: 'bench-2', name: 'Campsite Bench B', type: 'box', position: [-21.8, 0.3, 22], scale: [0.5, 0.4, 2], color: '#CD853F', collidable: true },
   { id: 'bench-3', name: 'Campsite Bench C', type: 'box', position: [-18.2, 0.3, 22], scale: [0.5, 0.4, 2], color: '#CD853F', collidable: true },
 
-  // 5. WATER FEATURE (Pushed further back to Z=-26)
-  { id: 'sanctuary-pond', name: 'Future Pools Section', type: 'cylinder', position: [0, 0.02, -26], scale: [4.5, 0.05, 4.5], color: '#4169E1', collidable: false, isWater: true },
+  // 5. WATER FEATURES (4 pools side-by-side, spaced 6m apart along the X axis at Z=-26)
+  { id: 'pool-1', name: 'Pool Section 1', type: 'cylinder', position: [-9, 0.02, -26], scale: [2.25, 0.05, 2.25], color: '#4169E1', collidable: false, isWater: true },
+  { id: 'pool-2', name: 'Pool Section 2', type: 'cylinder', position: [-3, 0.02, -26], scale: [2.25, 0.05, 2.25], color: '#4169E1', collidable: false, isWater: true },
+  { id: 'pool-3', name: 'Pool Section 3', type: 'cylinder', position: [3, 0.02, -26], scale: [2.25, 0.05, 2.25], color: '#4169E1', collidable: false, isWater: true },
+  { id: 'pool-4', name: 'Pool Section 4', type: 'cylinder', position: [9, 0.02, -26], scale: [2.25, 0.05, 2.25], color: '#4169E1', collidable: false, isWater: true },
 
   // 6. CORNER SHADE & PERIMETER COVER (Bushes scaled out to new corners)
   { id: 'corner-bush-tl', name: 'Corner Foliage TL', type: 'box', position: [-40, 1.5, -40], scale: [8, 3, 8], color: '#2E8B57', collidable: true },
