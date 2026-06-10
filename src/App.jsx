@@ -99,8 +99,8 @@ function PlayerBird() {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (document.pointerLockElement) {
-        yawRef.current += e.movementX * 0.002
-        pitchRef.current = Math.max(-0.5, Math.min(0.5, pitchRef.current - e.movementY * 0.002))
+        yawRef.current -= e.movementX * 0.002
+        pitchRef.current = Math.max(-0.5, Math.min(0.5, pitchRef.current + e.movementY * 0.002))
       }
     }
     document.addEventListener('mousemove', handleMouseMove)
