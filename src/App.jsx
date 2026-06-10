@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Sky, Html } from '@react-three/drei'
+import { Sky, Html } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
 
 const stats = {
@@ -122,6 +122,14 @@ function PlayerBird() {
     const boundary = 24.5
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
+
+    // 5. Dynamic Camera Tracking (3rd-person follow camera)
+    state.camera.position.set(
+      meshRef.current.position.x,
+      meshRef.current.position.y + 3, // Height behind player
+      meshRef.current.position.z + 6  // Distance behind player
+    )
+    state.camera.lookAt(meshRef.current.position)
   })
 
   return (
@@ -173,8 +181,6 @@ export default function App() {
         <PlayerBird />
         
         <SanctuaryMap />
-        
-        <OrbitControls />
       </Canvas>
     </div>
   )
