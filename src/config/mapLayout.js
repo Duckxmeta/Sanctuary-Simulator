@@ -47,4 +47,18 @@ export const SANCTUARY_STRUCTURES = [
   { id: 'ext-neighbor-roof', name: 'A-Frame Roof', type: 'cone', position: [0, 6, -60], scale: [8, 3, 8], color: '#444444', collidable: false },
   { id: 'ext-huge-field', name: 'Extended Northern Field', type: 'box', position: [0, -0.05, -140], scale: [300, 0.1, 150], color: '#6B8E23', collidable: false },
   { id: 'ext-river', name: 'Boundary River', type: 'box', position: [0, -0.1, -210], scale: [300, 0.2, 20], color: '#4682B4', collidable: false },
+
+  // 9. SHADE TREES (Procedural trees on the pasture)
+  { id: 'tree-1', name: 'Shade Tree A', type: 'tree', position: [15, 0, -15], scale: [1, 1, 1], color: '#228B22', collidable: true },
+  { id: 'tree-2', name: 'Shade Tree B', type: 'tree', position: [25, 0, -10], scale: [1, 1, 1], color: '#228B22', collidable: true },
+  { id: 'tree-3', name: 'Shade Tree C', type: 'tree', position: [20, 0, 10], scale: [1, 1, 1], color: '#228B22', collidable: true },
+  { id: 'tree-4', name: 'Shade Tree D', type: 'tree', position: [30, 0, 25], scale: [1, 1, 1], color: '#228B22', collidable: true },
+  { id: 'tree-5', name: 'Shade Tree E', type: 'tree', position: [-10, 0, 32], scale: [1, 1, 1], color: '#228B22', collidable: true },
+  { id: 'tree-6', name: 'Shade Tree F', type: 'tree', position: [-35, 0, -12], scale: [1, 1, 1], color: '#228B22', collidable: true },
+
+  // 10. CORNER SHADE & PERIMETER COVER (Bushes scaled out to new corners)
+  { id: 'corner-bush-tl', name: 'Corner Foliage TL', type: 'bush', position: [-40, 0, -40], scale: [1, 1, 1], color: '#2E8B57', collidable: true },
+  { id: 'corner-bush-tr', name: 'Corner Foliage TR', type: 'bush', position: [40, 0, -40], scale: [1, 1, 1], color: '#2E8B57', collidable: true },
+  { id: 'corner-bush-bl', name: 'Corner Foliage BL', type: 'bush', position: [-40, 0, 40], scale: [1, 1, 1], color: '#2E8B57', collidable: true },
+  { id: 'corner-bush-br', name: 'Corner Foliage BR', type: 'bush', position: [40, 0, 40], scale: [1, 1, 1], color: '#2E8B57', collidable: true },
 ]
