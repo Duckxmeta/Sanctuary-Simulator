@@ -67,19 +67,24 @@ export default function SanctuaryMap({ isGateOpen }) {
             </mesh>
 
             {/* Rocks border around each pool */}
-            {rockOffsets.map((rock, idx) => (
-              <mesh
-                key={`rock-${waterStruct.id}-${idx}`}
-                position={rock.pos}
-                scale={rock.scale}
-                rotation={rock.rot}
-                castShadow
-                receiveShadow
-              >
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial color="#90a4ae" roughness={0.8} />
-              </mesh>
-            ))}
+            {rockOffsets.map((rock, idx) => {
+              const rockScaleFactor = radius / 1.125
+              const rockPos = [rock.pos[0] * rockScaleFactor, rock.pos[1], rock.pos[2] * rockScaleFactor]
+              const rockScale = [rock.scale[0] * rockScaleFactor, rock.scale[1] * rockScaleFactor, rock.scale[2] * rockScaleFactor]
+              return (
+                <mesh
+                  key={`rock-${waterStruct.id}-${idx}`}
+                  position={rockPos}
+                  scale={rockScale}
+                  rotation={rock.rot}
+                  castShadow
+                  receiveShadow
+                >
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color="#90a4ae" roughness={0.8} />
+                </mesh>
+              )
+            })}
           </group>
         )
       })}

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { SANCTUARY_STRUCTURES } from '../../config/mapLayout'
 
 export default function HumanNPC({ setIsGateOpen, onSpawnFood }) {
   const groupRef = useRef()
@@ -12,10 +13,6 @@ export default function HumanNPC({ setIsGateOpen, onSpawnFood }) {
     node1: [-30, 0, 43],
     cans: [-9, 0, 6],
     feedZone: [0, 0, 8],
-    pool1: [-9, 0, -26],
-    pool2: [-3, 0, -26],
-    pool3: [3, 0, -26],
-    pool4: [9, 0, -26],
     outside: [-30, 0, 55]
   }
 
@@ -80,25 +77,18 @@ export default function HumanNPC({ setIsGateOpen, onSpawnFood }) {
         stepIndexRef.current = 1
       }
     } else if (phase === 'cleaning_pools') {
-      if (stepIndexRef.current === 1) {
-        target = nodes.pool1
-        const dist = Math.sqrt((pos.x - target[0]) ** 2 + (pos.z - target[2]) ** 2)
-        if (dist < 0.2) stepIndexRef.current = 2
-      } else if (stepIndexRef.current === 2) {
-        target = nodes.pool2
-        const dist = Math.sqrt((pos.x - target[0]) ** 2 + (pos.z - target[2]) ** 2)
-        if (dist < 0.2) stepIndexRef.current = 3
-      } else if (stepIndexRef.current === 3) {
-        target = nodes.pool3
-        const dist = Math.sqrt((pos.x - target[0]) ** 2 + (pos.z - target[2]) ** 2)
-        if (dist < 0.2) stepIndexRef.current = 4
-      } else if (stepIndexRef.current === 4) {
-        target = nodes.pool4
+      const waterPools = SANCTUARY_STRUCTURES.filter((s) => s.isWater)
+      const currentPoolIndex = stepIndexRef.current - 1
+      if (currentPoolIndex >= 0 && currentPoolIndex < waterPools.length) {
+        const pool = waterPools[currentPoolIndex]
+        target = [pool.position[0], 0, pool.position[2]]
         const dist = Math.sqrt((pos.x - target[0]) ** 2 + (pos.z - target[2]) ** 2)
         if (dist < 0.2) {
-          setPhase('exiting')
-          stepIndexRef.current = 0
+          stepIndexRef.current += 1
         }
+      } else {
+        setPhase('exiting')
+        stepIndexRef.current = 0
       }
     } else if (phase === 'exiting') {
       if (stepIndexRef.current === 0) {
