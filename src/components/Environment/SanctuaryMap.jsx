@@ -69,11 +69,20 @@ export default function SanctuaryMap() {
       {/* 4. Render All Other Structures Dynamically */}
       {regularStructures.map((struct) => {
         const isCylinder = struct.type === 'cylinder'
+        const isCone = struct.type === 'cone'
         
         return (
-          <mesh key={struct.id} position={struct.position} castShadow receiveShadow>
+          <mesh 
+            key={struct.id} 
+            position={struct.position} 
+            rotation={isCone ? [0, Math.PI / 4, 0] : [0, 0, 0]}
+            castShadow 
+            receiveShadow
+          >
             {isCylinder ? (
               <cylinderGeometry args={[struct.scale[0] / 2, struct.scale[2] / 2, struct.scale[1], 16]} />
+            ) : isCone ? (
+              <coneGeometry args={[struct.scale[0] / 2, struct.scale[1], 4]} />
             ) : (
               <boxGeometry args={struct.scale} />
             )}

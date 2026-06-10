@@ -36,4 +36,12 @@ export const SANCTUARY_STRUCTURES = [
   { id: 'rock-field-1', name: 'Field Rock A', type: 'box', position: [-15, 0.4, 12], scale: [1.5, 0.8, 1.5], color: '#808080', collidable: true },
   { id: 'rock-field-2', name: 'Field Rock B', type: 'box', position: [18, 0.3, -15], scale: [1.2, 0.6, 2], color: '#808080', collidable: true },
   { id: 'rock-field-3', name: 'Field Rock C', type: 'box', position: [-25, 0.5, -18], scale: [2, 1, 1.8], color: '#808080', collidable: true },
+
+  // 8. EXTERNAL LANDMARKS (Outside the sanctuary fences)
+  { id: 'ext-road-front', name: 'Country Road Front', type: 'box', position: [0, 0.01, 52], scale: [120, 0.02, 6], color: '#333333', collidable: false },
+  { id: 'ext-road-left', name: 'Country Road Left', type: 'box', position: [-52, 0.01, 0], scale: [6, 0.02, 110], color: '#333333', collidable: false },
+  { id: 'ext-neighbor-house', name: 'White A-Frame Base', type: 'box', position: [0, 2.5, -60], scale: [12, 5, 10], color: '#FFFFFF', collidable: true },
+  { id: 'ext-neighbor-roof', name: 'A-Frame Roof', type: 'cone', position: [0, 6, -60], scale: [8, 3, 8], color: '#444444', collidable: false },
+  { id: 'ext-huge-field', name: 'Extended Northern Field', type: 'box', position: [0, -0.05, -140], scale: [300, 0.1, 150], color: '#6B8E23', collidable: false },
+  { id: 'ext-river', name: 'Boundary River', type: 'box', position: [0, -0.1, -210], scale: [300, 0.2, 20], color: '#4682B4', collidable: false },
 ]
