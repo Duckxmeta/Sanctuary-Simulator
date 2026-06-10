@@ -2,16 +2,17 @@ import React, { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { SANCTUARY_STRUCTURES } from '../../config/mapLayout'
 
-export default function NPCBird({ id, name, color, pos, type, speed, foodItems, onEatFood }) {
+export default function NPCBird({ id, name, color, pos, type, speed, scale, foodItems, onEatFood }) {
   const groupRef = useRef()
   const targetAngleRef = useRef(Math.random() * Math.PI * 2)
   const changeTimeRef = useRef(0)
 
   // Determine geometry scale and colors based on bird type
   const isGoose = type === 'goose'
-  const baseScale = isGoose ? [0.85, 0.85, 0.85] : [0.6, 0.6, 0.6]
-  const headColor = isGoose ? '#FFFFFF' : '#006400' // Mallard green head for ducks, white for goose
-  const beakColor = isGoose ? '#FF8C00' : '#FFD700' // Orange beak for goose, yellow for ducks
+  const isTurkey = type === 'turkey'
+  const baseScale = scale || (isGoose ? [0.85, 0.85, 0.85] : [0.6, 0.6, 0.6])
+  const headColor = isTurkey ? '#D32F2F' : (isGoose ? '#FFFFFF' : '#006400')
+  const beakColor = isTurkey ? '#FFB74D' : (isGoose ? '#FF8C00' : '#FFD700')
 
   useFrame((state, delta) => {
     if (!groupRef.current) return
@@ -64,8 +65,36 @@ export default function NPCBird({ id, name, color, pos, type, speed, foodItems, 
     const stepX = -Math.sin(currentAngle) * speed * delta
     const stepZ = -Math.cos(currentAngle) * speed * delta
 
-    currentPos.x += stepX
-    currentPos.z += stepZ
+    // If turkey, check if stepping into a pool. If so, bounce back!
+    if (isTurkey) {
+      let tooCloseToPool = false
+      for (const struct of SANCTUARY_STRUCTURES) {
+        if (struct.isWater) {
+          const [px, , pz] = struct.position
+          const pradius = struct.scale[0] / 2
+          const limitDist = pradius + 0.2
+          const nextX = currentPos.x + stepX
+          const nextZ = currentPos.z + stepZ
+          const dx = nextX - px
+          const dz = nextZ - pz
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          if (dist < limitDist) {
+            tooCloseToPool = true
+            break
+          }
+        }
+      }
+      if (tooCloseToPool) {
+        // Bounce back: rotate 180 degrees and don't apply step
+        targetAngleRef.current = (targetAngleRef.current + Math.PI) % (Math.PI * 2)
+      } else {
+        currentPos.x += stepX
+        currentPos.z += stepZ
+      }
+    } else {
+      currentPos.x += stepX
+      currentPos.z += stepZ
+    }
 
     // 2. Sanctuary Boundaries Constraint Check (perimeter at 44.5 units to match fences at ±45.0)
     const boundary = 44.5
@@ -78,16 +107,18 @@ export default function NPCBird({ id, name, color, pos, type, speed, foodItems, 
 
     // 3. Water Detection Check (Distance check against all pools)
     let isInsidePond = false
-    for (const struct of SANCTUARY_STRUCTURES) {
-      if (struct.isWater) {
-        const [px, , pz] = struct.position
-        const pradius = struct.scale[0] / 2
-        const dx = currentPos.x - px
-        const dz = currentPos.z - pz
-        const dist = Math.sqrt(dx * dx + dz * dz)
-        if (dist < pradius) {
-          isInsidePond = true
-          break
+    if (!isTurkey) {
+      for (const struct of SANCTUARY_STRUCTURES) {
+        if (struct.isWater) {
+          const [px, , pz] = struct.position
+          const pradius = struct.scale[0] / 2
+          const dx = currentPos.x - px
+          const dz = currentPos.z - pz
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          if (dist < pradius) {
+            isInsidePond = true
+            break
+          }
         }
       }
     }
