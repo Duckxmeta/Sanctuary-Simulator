@@ -1,7 +1,25 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { SANCTUARY_STRUCTURES } from '../../config/mapLayout'
 
-export default function SanctuaryMap() {
+function InteractiveGate({ isGateOpen, struct }) {
+  const meshRef = useRef()
+  
+  useFrame((state, delta) => {
+    if (!meshRef.current) return
+    const targetRotation = isGateOpen ? Math.PI / 2 : 0
+    meshRef.current.rotation.y += (targetRotation - meshRef.current.rotation.y) * 0.1
+  })
+  
+  return (
+    <mesh ref={meshRef} position={struct.position} castShadow receiveShadow>
+      <boxGeometry args={struct.scale} />
+      <meshStandardMaterial color={struct.color} roughness={0.8} />
+    </mesh>
+  )
+}
+
+export default function SanctuaryMap({ isGateOpen }) {
   const waterStructures = SANCTUARY_STRUCTURES.filter((s) => s.isWater && (!s.id || !s.id.includes('corner-bush')))
   
   // Render other structures dynamically
@@ -68,6 +86,10 @@ export default function SanctuaryMap() {
 
       {/* 4. Render All Other Structures Dynamically */}
       {regularStructures.map((struct) => {
+        if (struct.id === 'main-gate') {
+          return <InteractiveGate key={struct.id} isGateOpen={isGateOpen} struct={struct} />
+        }
+
         const isCylinder = struct.type === 'cylinder'
         const isCone = struct.type === 'cone'
         

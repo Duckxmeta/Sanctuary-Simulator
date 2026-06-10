@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Sky, PointerLockControls } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
@@ -12,10 +12,11 @@ const stats = {
 }
 
 // Axis-Aligned Bounding Box (AABB) Collision Helper
-const checkCollision = (x, z) => {
+const checkCollision = (x, z, isGateOpen) => {
   for (const struct of SANCTUARY_STRUCTURES) {
     if (!struct.collidable) continue // Only check collidable structures
     if (struct.id && struct.id.includes('corner-bush')) continue // Explicitly ignore corner bushes
+    if (struct.id === 'main-gate' && isGateOpen) continue // Ignore gate collision if open
 
     const [sx, , sz] = struct.position
     const [sw, , sd] = struct.scale
@@ -40,13 +41,18 @@ const checkCollision = (x, z) => {
   return false
 }
 
-function PlayerBird() {
+function PlayerBird({ isGateOpen, setIsGateOpen }) {
   const meshRef = useRef()
   const velocityYRef = useRef(0)
   const isGroundedRef = useRef(true)
   
   const yawRef = useRef(0)
   const pitchRef = useRef(0.2)
+
+  const isGateOpenRef = useRef(isGateOpen)
+  useEffect(() => {
+    isGateOpenRef.current = isGateOpen
+  }, [isGateOpen])
 
   const keysRef = useRef({
     moveForward: false,
@@ -64,6 +70,19 @@ function PlayerBird() {
       if (e.code === 'KeyS' || e.code === 'ArrowDown') keysRef.current.moveBackward = true
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') keysRef.current.moveLeft = true
       if (e.code === 'KeyD' || e.code === 'ArrowRight') keysRef.current.moveRight = true
+
+      // E Key - Interaction
+      if (e.code === 'KeyE') {
+        const pos = meshRef.current?.position
+        if (pos) {
+          const dx = pos.x - (-30)
+          const dz = pos.z - 45
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          if (dist < 3) {
+            setIsGateOpen((prev) => !prev)
+          }
+        }
+      }
 
       // Spacebar (Jump & Glide)
       if (e.code === 'Space') {
@@ -118,6 +137,25 @@ function PlayerBird() {
     const pos = meshRef.current.position
     const yaw = yawRef.current
     const pitch = pitchRef.current
+    const isGateOpenVal = isGateOpenRef.current
+
+    // Check distance to main gate [-30, 0, 45]
+    const gateX = -30
+    const gateZ = 45
+    const dx = pos.x - gateX
+    const dz = pos.z - gateZ
+    const dist = Math.sqrt(dx * dx + dz * dz)
+    const inRange = dist < 3
+
+    const hudEl = document.getElementById('gate-hud')
+    if (hudEl) {
+      if (inRange) {
+        hudEl.style.display = 'block'
+        hudEl.innerText = isGateOpenVal ? '[E] Close Gate' : '[E] Open Gate'
+      } else {
+        hudEl.style.display = 'none'
+      }
+    }
 
     // 1. Calculate player's distance to all water pools
     let isInsidePond = false
@@ -221,10 +259,10 @@ function PlayerBird() {
       const nextZ = pos.z + stepZ
 
       // Apply sliding collision checks on X and Z axes independently
-      if (!checkCollision(nextX, pos.z)) {
+      if (!checkCollision(nextX, pos.z, isGateOpenVal)) {
         pos.x = nextX
       }
-      if (!checkCollision(pos.x, nextZ)) {
+      if (!checkCollision(pos.x, nextZ, isGateOpenVal)) {
         pos.z = nextZ
       }
 
@@ -313,8 +351,10 @@ function PlayerBird() {
 }
 
 export default function App() {
+  const [isGateOpen, setIsGateOpen] = useState(false)
+
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <Canvas camera={{ position: [0, 8, 16], fov: 60 }} shadows>
         <Sky distance={450000} sunPosition={[15, 30, 15]} inclination={0} azimuth={0.25} />
         <ambientLight intensity={0.7} />
@@ -325,16 +365,40 @@ export default function App() {
           shadow-mapSize={[2048, 2048]} 
         />
         
-        <PlayerBird />
+        <PlayerBird isGateOpen={isGateOpen} setIsGateOpen={setIsGateOpen} />
         
         {SANCTUARY_NPCS.map((npc) => (
           <NPCBird key={npc.id} {...npc} />
         ))}
         
-        <SanctuaryMap />
+        <SanctuaryMap isGateOpen={isGateOpen} />
         
         <PointerLockControls />
       </Canvas>
+
+      {/* Interactive Gate HUD Overlay */}
+      <div id="gate-hud" style={{
+        position: 'absolute',
+        bottom: '40px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'rgba(0, 0, 0, 0.75)',
+        color: '#fff',
+        padding: '12px 24px',
+        borderRadius: '30px',
+        fontFamily: "'Outfit', 'Inter', sans-serif",
+        fontSize: '18px',
+        fontWeight: '600',
+        pointerEvents: 'none',
+        display: 'none',
+        zIndex: 10,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(5px)',
+        letterSpacing: '0.5px',
+      }}>
+        [E] Open Gate
+      </div>
     </div>
   )
 }
