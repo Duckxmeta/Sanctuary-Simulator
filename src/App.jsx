@@ -2,10 +2,39 @@ import React, { useEffect, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Sky } from '@react-three/drei'
 import SanctuaryMap from './components/Environment/SanctuaryMap'
+import { SANCTUARY_STRUCTURES } from './config/mapLayout'
 
 const stats = {
   speed: 4,
   swimSpeed: 7,
+}
+
+// Axis-Aligned Bounding Box (AABB) Collision Helper
+const checkCollision = (x, z) => {
+  for (const struct of SANCTUARY_STRUCTURES) {
+    if (struct.id === 'main-pond') continue // Exclude pond from solid collisions
+
+    const [sx, , sz] = struct.position
+    const [sw, , sd] = struct.scale
+
+    // Calculate structure bounding box edges
+    const minX = sx - sw / 2
+    const maxX = sx + sw / 2
+    const minZ = sz - sd / 2
+    const maxZ = sz + sd / 2
+
+    // Bird bounding box edges (assumed 1x1x1 size)
+    const birdMinX = x - 0.5
+    const birdMaxX = x + 0.5
+    const birdMinZ = z - 0.5
+    const birdMaxZ = z + 0.5
+
+    // Check for AABB intersection
+    if (birdMinX < maxX && birdMaxX > minX && birdMinZ < maxZ && birdMaxZ > minZ) {
+      return true // Collision detected
+    }
+  }
+  return false
 }
 
 function PlayerBird() {
@@ -69,8 +98,9 @@ function PlayerBird() {
     const pos = meshRef.current.position
 
     // 1. Calculate player's distance from the center of the pond (0, 0, 0)
+    // The pond diameter is 12, so the radius is 6
     const distToCenter = Math.sqrt(pos.x * pos.x + pos.z * pos.z)
-    const pondRadius = 5.2
+    const pondRadius = 6.0
     const isInsidePond = distToCenter < pondRadius
 
     // Determine target/ground height based on location (water vs land)
@@ -93,7 +123,7 @@ function PlayerBird() {
       velocityYRef.current -= currentGravity * delta
       pos.y += velocityYRef.current * delta
 
-      // 4. Landing Detection
+      // Landing Detection
       if (pos.y <= groundLevel) {
         pos.y = groundLevel
         velocityYRef.current = 0
@@ -121,9 +151,20 @@ function PlayerBird() {
     if (isMoving) {
       const directionMultiplier = forward ? 1 : -1
       
-      // Move forward/backward based on current rotation.y
-      pos.x -= Math.sin(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
-      pos.z -= Math.cos(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
+      // Calculate potential next position step
+      const stepX = -Math.sin(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
+      const stepZ = -Math.cos(meshRef.current.rotation.y) * moveSpeed * delta * directionMultiplier
+
+      const nextX = pos.x + stepX
+      const nextZ = pos.z + stepZ
+
+      // Apply sliding collision checks on X and Z axes independently
+      if (!checkCollision(nextX, pos.z)) {
+        pos.x = nextX
+      }
+      if (!checkCollision(pos.x, nextZ)) {
+        pos.z = nextZ
+      }
 
       // Animations based on state
       if (!isGroundedRef.current) {
@@ -164,8 +205,8 @@ function PlayerBird() {
       }
     }
 
-    // Sanctuary Boundaries Constraint Check (perimeter at 24.5 units)
-    const boundary = 24.5
+    // Sanctuary Boundaries Constraint Check (perimeter at 29.5 units to match fences at ±30)
+    const boundary = 29.5
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
