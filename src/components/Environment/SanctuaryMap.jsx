@@ -2,10 +2,10 @@ import React, { useMemo } from 'react'
 import { SANCTUARY_STRUCTURES } from '../../config/mapLayout'
 
 export default function SanctuaryMap() {
-  const waterStructures = SANCTUARY_STRUCTURES.filter((s) => s.isWater)
+  const waterStructures = SANCTUARY_STRUCTURES.filter((s) => s.isWater && (!s.id || !s.id.includes('corner-bush')))
   
   // Render other structures dynamically
-  const regularStructures = SANCTUARY_STRUCTURES.filter((s) => !s.isWater)
+  const regularStructures = SANCTUARY_STRUCTURES.filter((s) => !s.isWater && (!s.id || !s.id.includes('corner-bush')))
 
   // Rocks border pattern (relative offsets) to place around each pool
   const rockOffsets = useMemo(() => {

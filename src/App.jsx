@@ -15,6 +15,7 @@ const stats = {
 const checkCollision = (x, z) => {
   for (const struct of SANCTUARY_STRUCTURES) {
     if (!struct.collidable) continue // Only check collidable structures
+    if (struct.id && struct.id.includes('corner-bush')) continue // Explicitly ignore corner bushes
 
     const [sx, , sz] = struct.position
     const [sw, , sd] = struct.scale
@@ -248,13 +249,13 @@ function PlayerBird() {
         meshRef.current.rotation.x += ((0.05 * directionMultiplier) - meshRef.current.rotation.x) * 0.1
         if (!isInsidePond) {
           // Waddling on land
-          const waddleFreq = 16
-          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * waddleFreq) * 0.15
-          pos.y = groundLevel + Math.abs(Math.sin(state.clock.elapsedTime * waddleFreq)) * 0.08
+          const waddleFreq = 12
+          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * waddleFreq) * 0.08
+          pos.y = groundLevel + Math.abs(Math.sin(state.clock.elapsedTime * waddleFreq)) * 0.05
         } else {
           // Swimming in pond
-          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 6) * 0.05
-          pos.y = groundLevel + Math.sin(state.clock.elapsedTime * 4) * 0.03
+          meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 4) * 0.05
+          pos.y = groundLevel + Math.sin(state.clock.elapsedTime * 3 + pos.x) * 0.03
         }
       }
     } else {
