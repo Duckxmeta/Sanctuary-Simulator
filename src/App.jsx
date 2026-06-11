@@ -75,6 +75,10 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
   const rayOriginRef = useRef(new THREE.Vector3())
   const rayDirRef = useRef(new THREE.Vector3(0, -1, 0))
 
+  // Wing mesh references for flapping animation
+  const leftWingRef = useRef()
+  const rightWingRef = useRef()
+
   const isGateOpenRef = useRef(isGateOpen)
   useEffect(() => {
     isGateOpenRef.current = isGateOpen
@@ -385,6 +389,27 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
     pos.x = Math.max(-boundary, Math.min(boundary, pos.x))
     pos.z = Math.max(-boundary, Math.min(boundary, pos.z))
 
+    // G. Wing Flapping Animations (State-driven)
+    if (leftWingRef.current && rightWingRef.current) {
+      const t = state.clock.getElapsedTime()
+      const isGliding = !isGroundedRef.current && spacePressed
+      const isMovingInput = forward || backward || left || right
+
+      if (isGliding) {
+        // GLIDE MODE: Spread wings wide and flap aggressively!
+        leftWingRef.current.rotation.z = Math.sin(t * 25) * 0.4 + 0.6
+        rightWingRef.current.rotation.z = -Math.sin(t * 25) * 0.4 - 0.6
+      } else if (isMovingInput) {
+        // SPRINT MODE: Subtle wing wobble for running balance
+        leftWingRef.current.rotation.z = Math.sin(t * 10) * 0.08 + 0.1
+        rightWingRef.current.rotation.z = -Math.sin(t * 10) * 0.08 - 0.1
+      } else {
+        // IDLE MODE: Rest wings flat against the sides
+        leftWingRef.current.rotation.z = 0.1
+        rightWingRef.current.rotation.z = -0.1
+      }
+    }
+
     // Strict 3rd-person camera orbital locking
     const distance = 6
     const duckPos = meshRef.current.position
@@ -425,12 +450,12 @@ function PlayerBird({ isGateOpen, setIsGateOpen }) {
 
       {/* 3. FLAPPABLE WINGS (Tucked to sides) */}
       {/* Left Wing */}
-      <mesh position={[-0.32, 0.4, 0]} rotation={[0, 0, 0.1]} castShadow receiveShadow>
+      <mesh ref={leftWingRef} position={[-0.32, 0.4, 0]} rotation={[0, 0, 0.1]} castShadow receiveShadow>
         <boxGeometry args={[0.05, 0.25, 0.5]} />
         <meshStandardMaterial color="#5C4033" roughness={0.8} />
       </mesh>
       {/* Right Wing */}
-      <mesh position={[0.32, 0.4, 0]} rotation={[0, 0, -0.1]} castShadow receiveShadow>
+      <mesh ref={rightWingRef} position={[0.32, 0.4, 0]} rotation={[0, 0, -0.1]} castShadow receiveShadow>
         <boxGeometry args={[0.05, 0.25, 0.5]} />
         <meshStandardMaterial color="#5C4033" roughness={0.8} />
       </mesh>
